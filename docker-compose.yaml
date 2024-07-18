@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:14.5
+    container_name: postgres_14
+    hostname: db
+    ports:
+      - 6543:5432
+    environment:
+      POSTGRES_DB: "tickets_system"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+    volumes:
+      - ./tests:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+  
+  # ws_server:
+  #   hostname: ws
+  #   ports:
+  #     - 5000:5000
+  #   build: ./server/ws_server/
+  #   container_name: ws_server
+  #   volumes:
+  #     - ./server/ws_server:/ws_server
+  #   links:
+  #     - postgres
+  #   depends_on:
+  #     postgres:
+  #       condition: 
+  #         service_healthy
+
+  tickets_system:
+    ports:
+      - 82:82
+    build: .
+    container_name: tickets_system
+    volumes:
+      - .:/app
+    links:
+      - postgres
+    depends_on:
+      # ws_server:
+      #   condition:
+      #     service_started
+      postgres:
+        condition: 
+          service_healthy

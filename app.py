@@ -19,7 +19,7 @@ dash._dash_renderer._set_react_version("18.2.0")
 app = dash.Dash(
     __name__,
     use_pages=True,
-    external_stylesheets=[dbc.themes.ZEPHYR, dbc.icons.FONT_AWESOME],
+    external_stylesheets=[dbc.themes.ZEPHYR, 'assets/offline/bootstrap.min.css'],
     title="Tickets System",
     update_title="Tickets System 🔄️",
 )
@@ -33,6 +33,9 @@ app.layout = dmc.MantineProvider(
     id="mantine_theme",
     defaultColorScheme="light",
 )
+
+# app.css.config.serve_locally = True
+# app.scripts.config.serve_locally = True
 
 
 # @callback(

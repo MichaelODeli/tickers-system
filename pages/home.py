@@ -1,4 +1,4 @@
-from dash import html, register_page
+from dash import html, register_page, clientside_callback, Input, Output
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 
@@ -11,7 +11,7 @@ register_page(
 def layout():
     return dbc.Row(
         [
-            dbc.Col(className='adaptive-hide', width=3),
+            dbc.Col(className="adaptive-hide", width=3),
             dbc.Col(
                 [
                     dmc.Card(
@@ -28,18 +28,18 @@ def layout():
                                     color="blue",
                                     mt="md",
                                     radius="md",
-                                    fullWidth=True
+                                    fullWidth=True,
                                 ),
                                 href="/ticket_send",
-                                className='a-no-decoration'
+                                className="a-no-decoration",
                             ),
                         ],
-                        w='max-content',
-                        m='auto'
+                        w="max-content",
+                        m="auto",
                     )
                 ],
                 md=3,
-                xs=6
+                xs=6,
             ),
             dbc.Col(
                 [
@@ -57,20 +57,29 @@ def layout():
                                     color="blue",
                                     mt="md",
                                     radius="md",
-                                    fullWidth=True
+                                    fullWidth=True,
                                 ),
                                 href="/ticket_read",
-                                className='a-no-decoration'
+                                className="a-no-decoration",
                             ),
                         ],
-                        w='max-content',
-                        m='auto'
+                        w="max-content",
+                        m="auto",
                     )
                 ],
                 md=3,
-                xs=6
+                xs=6,
             ),
-            dbc.Col(className='adaptive-hide', width=3),
+            dbc.Col(className="adaptive-hide", width=3),
         ],
-        style={'padding-top': '33dvh'}
+        style={"padding-top": "33dvh"},
     )
+
+
+# clientside_callback(
+#     """window.open('localhost:82/ticket_send','name','width=600,height=400');
+#      return dash_clientside.no_update;""",
+#     [Output("test", "style")],
+#     [Input("test", "n_clicks")],
+#     prevent_initial_call=True,
+# )

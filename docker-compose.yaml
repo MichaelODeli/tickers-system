@@ -12,28 +12,14 @@ services:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
     volumes:
-      - ./tests:/docker-entrypoint-initdb.d
+      - ./db:/docker-entrypoint-initdb.d
+      # - ./tests/demo_data.sql:/scripts/demo_data.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
     restart: always
-  
-  # ws_server:
-  #   hostname: ws
-  #   ports:
-  #     - 5000:5000
-  #   build: ./server/ws_server/
-  #   container_name: ws_server
-  #   volumes:
-  #     - ./server/ws_server:/ws_server
-  #   links:
-  #     - postgres
-  #   depends_on:
-  #     postgres:
-  #       condition: 
-  #         service_healthy
 
   tickets_system:
     ports:
@@ -45,9 +31,6 @@ services:
     links:
       - postgres
     depends_on:
-      # ws_server:
-      #   condition:
-      #     service_started
       postgres:
         condition: 
           service_healthy

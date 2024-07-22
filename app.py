@@ -16,20 +16,30 @@ import dash_bootstrap_components as dbc
 from dash_extensions.pages import setup_page_components
 
 dash._dash_renderer._set_react_version("18.2.0")
+mantine_stylesheets = [
+    "https://unpkg.com/@mantine/dates@7/styles.css",
+    "https://unpkg.com/@mantine/code-highlight@7/styles.css",
+    "https://unpkg.com/@mantine/charts@7/styles.css",
+    "https://unpkg.com/@mantine/carousel@7/styles.css",
+    "https://unpkg.com/@mantine/notifications@7/styles.css",
+    "https://unpkg.com/@mantine/nprogress@7/styles.css",
+]
 app = dash.Dash(
     __name__,
     use_pages=True,
-    external_stylesheets=[dbc.themes.ZEPHYR, 'assets/offline/bootstrap.min.css'],
+    external_stylesheets=[dbc.themes.ZEPHYR, "assets/offline/bootstrap.min.css"]
+    + mantine_stylesheets,
     title="Tickets System",
     update_title="Tickets System 🔄️",
 )
 
 app.layout = dmc.MantineProvider(
-    dmc.Container(
-        [page_container, setup_page_components()],
-        miw="100%",
-        mih='100%'
-    ),
+    [
+        dmc.Container(
+            [page_container, setup_page_components()], miw="100%", mih="100%"
+        ),
+        dmc.NotificationProvider()
+    ],
     id="mantine_theme",
     defaultColorScheme="light",
 )
@@ -37,23 +47,6 @@ app.layout = dmc.MantineProvider(
 # app.css.config.serve_locally = True
 # app.scripts.config.serve_locally = True
 
-
-# @callback(
-#     Output("mantine_theme", "forceColorScheme"), Input("color-mode-switch", "value")
-# )
-# def make_mantine_theme(value):
-#     return "dark" if value == False else "light"
-
-# clientside_callback(
-#     """
-#     (switchOn) => {
-#        document.documentElement.setAttribute('data-bs-theme', switchOn ? 'light' : 'dark');
-#        return window.dash_clientside.no_update
-#     }
-#     """,
-#     Output("color-mode-switch", "id"),
-#     Input("color-mode-switch", "value"),
-# )
 
 server = app.server
 app.config.suppress_callback_exceptions = True

@@ -11,4 +11,6 @@ RUN --mount=type=cache,target="$PIP_DOWNLOAD_CACHE" \
 
 COPY . .
 
+ENV AM_I_IN_A_DOCKER_CONTAINER True
+
 CMD [ "python", "app.py"]

@@ -1,3 +1,7 @@
 .a-no-decoration {
     text-decoration: none !important;
 }
+
+.w-content {
+    width: max-content !important;
+}

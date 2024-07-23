@@ -12,13 +12,9 @@ from dash import (
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 import pandas as pd
-from uuid_extensions import uuid7str
 from controllers import db_connection
-from controllers import conn_checker_callback as ccc
 import math
-from sqlalchemy import text
 import warnings
-from datetime import datetime
 
 warnings.filterwarnings("ignore")
 
@@ -47,11 +43,9 @@ def layout(ticket_id=None):
                     dmc.Stack(
                         [
                             html.H3("Просмотр обращений", id="dummy"),
-                            dcc.Store(id="server-avaliablity-1"),
                             html.Div(
                                 [
                                     dmc.LoadingOverlay(
-                                        visible=True,
                                         id="loading-overlay-read",
                                         zIndex=1000,
                                         overlayProps={"radius": "sm", "blur": 2},
@@ -103,7 +97,7 @@ def layout(ticket_id=None):
     Input("tickets-datatable", "page_current"),
     Input("tickets-datatable", "page_size"),
     Input("loading-overlay-read", "visible"),
-    State("server-avaliablity-1", "data"),
+    State("server-avaliablity", "data"),
 )
 def update_table(page_current, page_size, visible, avaliablity):
     global PAGE_SIZE
@@ -207,14 +201,3 @@ def view_ticket(active_cell, opened):
     else:
         return [no_update] * 3
 
-
-@callback(
-    Output("output-read", "children"),
-    Output("server-avaliablity-1", "data"),
-    Input("dummy-1", "style"),
-    running=[
-        (Output("loading-overlay-read", "visible"), True, False),
-    ],
-)
-def checher_conn(style):
-    return ccc.checker_conn(style)

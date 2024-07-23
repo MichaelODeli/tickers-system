@@ -5,7 +5,6 @@ from dash_iconify import DashIconify
 from uuid_extensions import uuid7str
 from controllers import db_connection
 import re
-from controllers import conn_checker_callback as ccc
 
 register_page(
     __name__,
@@ -20,15 +19,8 @@ def layout():
             dbc.Col(
                 [
                     html.H3("Создание нового обращения"),
-                    dcc.Store(id="server-avaliablity"),
                     dmc.Stack(
                         [
-                            dmc.LoadingOverlay(
-                                visible=True,
-                                id="loading-overlay",
-                                zIndex=1000,
-                                overlayProps={"radius": "sm", "blur": 2},
-                            ),
                             dmc.TextInput(
                                 label="Электронная почта для связи",
                                 w=300,
@@ -122,18 +114,6 @@ def layout():
         ],
         style={"paddingTop": "10dvh"},
     )
-
-
-@callback(
-    Output("send-form", "children"),
-    Output("server-avaliablity", "data"),
-    Input("send-form", "style"),
-    running=[
-        (Output("loading-overlay", "visible"), True, False),
-    ],
-)
-def checher_conn(style):
-    return ccc.checker_conn(style)
 
 
 @callback(

@@ -25,7 +25,6 @@ def layout():
                             html.A(
                                 dmc.Button(
                                     "Перейти",
-                                    color="blue",
                                     mt="md",
                                     radius="md",
                                     fullWidth=True,
@@ -54,7 +53,6 @@ def layout():
                             html.A(
                                 dmc.Button(
                                     "Перейти",
-                                    color="blue",
                                     mt="md",
                                     radius="md",
                                     fullWidth=True,
@@ -72,14 +70,5 @@ def layout():
             ),
             dbc.Col(className="adaptive-hide", width=3),
         ],
-        style={"padding-top": "33dvh"},
+        style={"paddingTop": "33dvh"},
     )
-
-
-# clientside_callback(
-#     """window.open('localhost:82/ticket_send','name','width=600,height=400');
-#      return dash_clientside.no_update;""",
-#     [Output("test", "style")],
-#     [Input("test", "n_clicks")],
-#     prevent_initial_call=True,
-# )

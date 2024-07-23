@@ -15,6 +15,7 @@ import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 from dash_extensions.pages import setup_page_components
 import os
+from controllers import db_connection
 
 dash._dash_renderer._set_react_version("18.2.0")
 mantine_stylesheets = [
@@ -37,16 +38,57 @@ app = dash.Dash(
 app.layout = dmc.MantineProvider(
     [
         dmc.Container(
-            [page_container, setup_page_components()], miw="100%", mih="100%"
+            [
+                page_container,
+                setup_page_components(),
+                dmc.LoadingOverlay(
+                    visible=True,
+                    id="loading-overlay",
+                    zIndex=1000,
+                    overlayProps={"radius": "sm", "blur": 5},
+                    loaderProps={"size": "lg"},
+                ),
+                dcc.Store(id="server-avaliablity"),
+            ],
+            miw="100%",
+            mih="100%",
+            id="server-blocker",
         ),
-        dmc.NotificationProvider()
+        dmc.NotificationProvider(),
     ],
     id="mantine_theme",
     defaultColorScheme="light",
+    theme={
+        "primaryColor": "indigo",
+        "fontFamily": 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"',
+    },
 )
 
 # app.css.config.serve_locally = True
 # app.scripts.config.serve_locally = True
+
+
+@app.callback(
+    Output("server-avaliablity", "data"),
+    Output("server-blocker", "children"),
+    Input("server-blocker", "style"),
+    running=[
+        (Output("loading-overlay", "visible"), True, False),
+    ],
+)
+def server_blocker(style):
+    if db_connection.test_conn():
+        return True, no_update
+    else:
+        return False, html.Center(
+            [
+                html.H5(
+                    "Сервис технической поддержки недоступен. "
+                    "Обратитесь за помощью по внутреннему телефону или через мессенджер."
+                )
+            ],
+            style={"margin-top": "70px"},
+        )
 
 
 server = app.server

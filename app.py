@@ -14,15 +14,16 @@ from dash import (
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 from dash_extensions.pages import setup_page_components
+import os
 
 dash._dash_renderer._set_react_version("18.2.0")
 mantine_stylesheets = [
-    "https://unpkg.com/@mantine/dates@7/styles.css",
-    "https://unpkg.com/@mantine/code-highlight@7/styles.css",
-    "https://unpkg.com/@mantine/charts@7/styles.css",
-    "https://unpkg.com/@mantine/carousel@7/styles.css",
+    # "https://unpkg.com/@mantine/dates@7/styles.css",
+    # "https://unpkg.com/@mantine/code-highlight@7/styles.css",
+    # "https://unpkg.com/@mantine/charts@7/styles.css",
+    # "https://unpkg.com/@mantine/carousel@7/styles.css",
     "https://unpkg.com/@mantine/notifications@7/styles.css",
-    "https://unpkg.com/@mantine/nprogress@7/styles.css",
+    # "https://unpkg.com/@mantine/nprogress@7/styles.css",
 ]
 app = dash.Dash(
     __name__,
@@ -51,7 +52,7 @@ app.layout = dmc.MantineProvider(
 server = app.server
 app.config.suppress_callback_exceptions = True
 
-dev = True
+dev = True if not os.environ.get("AM_I_IN_A_DOCKER_CONTAINER", False) else False
 
 if __name__ == "__main__":
     if dev:

@@ -156,11 +156,12 @@ def send_ticket(n_clicks, avaliablity, email, district, userid, priority, text, 
             None in [email, district, userid, priority, text]
             or "" in [email, district, userid, priority, text]
             or not re.match(r"[^@]+@[^@]+\.[^@]+", email)
-            # or len(str(userid)) != 8
         ):
             return "Не все поля правильно заполнены", no_update, no_update
         elif len(text) > 1024:
             return "Максимальное количество символов - 1024", no_update, no_update
+        elif len(str(userid)) != 8:
+            return "Табельный номер состоит из 8 цифр", no_update, no_update
         else:
             try:
                 ticket_uuid = uuid7str()

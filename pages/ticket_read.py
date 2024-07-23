@@ -18,6 +18,7 @@ from controllers import conn_checker_callback as ccc
 import math
 from sqlalchemy import text
 import warnings
+from datetime import datetime
 
 warnings.filterwarnings("ignore")
 
@@ -106,14 +107,16 @@ def layout(ticket_id=None):
 )
 def update_table(page_current, page_size, visible, avaliablity):
     global PAGE_SIZE
+    page_current = 0 if page_current is None else page_current
+
     if avaliablity:
         conn = db_connection.get_conn()
         records = pd.read_sql("select count(*) from tickets_simple;", conn)[
             "count"
         ].tolist()[0]
 
-        start_record = page_current * page_size
-        end_record = (page_current + 1) * page_size
+        start_record = page_current * PAGE_SIZE
+        end_record = (page_current + 1) * PAGE_SIZE
         page_count = math.ceil(records / PAGE_SIZE)
 
         df = pd.read_sql_query(
@@ -132,12 +135,13 @@ def update_table(page_current, page_size, visible, avaliablity):
             conn,
         )
         df["id"] = df["uuid"]
+        df['text'] = df['text'].apply(lambda x: x[:15] + '...' if len(x) > 15 else x)
+        df['created_at'] = df['created_at'].dt.strftime('%H:%M:%S %d.%m.%Y')
 
         conn.close()
 
         return (
             df.to_dict("records"),
-            # df.iloc[start_record:end_record].to_dict("records"),
             [{"name": i, "id": i} for i in sorted(df.columns)],
             page_count,
             [
@@ -198,17 +202,6 @@ def view_ticket(active_cell, opened):
             bordered=True,
             hover=True,
         )
-
-        # return (
-        #     dmc.Notification(
-        #         title="Подтверждение клика",
-        #         id="simple-notify",
-        #         action="show",
-        #         message=f"Ticket ID: {active_cell['row_id']}",
-        #     )
-        #     if active_cell is not None
-        #     else no_update
-        # )
 
         return modal_content, not opened, no_update
     else:

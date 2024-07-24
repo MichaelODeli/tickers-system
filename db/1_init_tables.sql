@@ -18,9 +18,7 @@ create table "departments" (
   "updated_at" timestamp not null default NOW(),
   FOREIGN KEY (access_level) REFERENCES access_levels (id) ON DELETE CASCADE
 );
-INSERT INTO departments (department_name, access_level) VALUES ('Гости', 1);
-INSERT INTO departments (department_name, access_level) VALUES ('Сотрудники', 2);
-INSERT INTO departments (department_name, access_level) VALUES ('Администраторы', 3);
+INSERT INTO departments (department_name, access_level) VALUES ('Гости', 1), ('Сотрудники', 2), ('Администраторы', 3);
 
 
 create table "users" (
@@ -68,7 +66,8 @@ create table "tickets" (
     FOREIGN KEY (problem_id) REFERENCES problems_list (id) ON DELETE CASCADE
 );
 
-create table "tickets_simple" (
+
+create table if not exists "tickets_simple" (
     "id" serial primary key,
     "uuid" uuid not null,
     "user_id" INTEGER not null,

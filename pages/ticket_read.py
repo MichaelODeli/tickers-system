@@ -15,6 +15,7 @@ import pandas as pd
 from controllers import db_connection
 import math
 import warnings
+from flask_login import current_user
 
 warnings.filterwarnings("ignore")
 
@@ -28,65 +29,68 @@ PAGE_SIZE = 15
 def layout(ticket_id=None):
     global PAGE_SIZE
 
-    return dbc.Row(
-        [
-            dmc.Modal(
-                title="Информация об отчете",
-                id="ticket-read-modal",
-                zIndex=10000,
-                size="55%",
-            ),
-            dbc.Col(className="adaptive-hide", width=2),
-            dbc.Col(
-                [
-                    html.Div(id="notifications-container"),
-                    dmc.Stack(
-                        [
-                            html.H3("Просмотр обращений", id="dummy"),
-                            html.Div(
-                                [
-                                    dmc.LoadingOverlay(
-                                        id="loading-overlay-read",
-                                        zIndex=1000,
-                                        overlayProps={"radius": "sm", "blur": 2},
-                                    ),
-                                    dash_table.DataTable(
-                                        id="tickets-datatable",
-                                        page_current=0,
-                                        page_size=PAGE_SIZE,
-                                        page_action="custom",
-                                        css=[
-                                            {
-                                                "selector": "tr:hover",
-                                                "rule": "background-color: var(--bs-table-hover-bg) !important",
-                                            },
-                                            {
-                                                "selector": "td",
-                                                "rule": "background-color: inherit !important",
-                                            },
-                                            {
-                                                "selector": "table",
-                                                "rule": "font-family: var(--bs-font-sans-serif) !important",
-                                            },
-                                            {
-                                                "selector": "th",
-                                                "rule": "font-weight: 600 !important",
-                                            },
-                                        ],
-                                        hidden_columns=["id", "uuid"],
-                                    ),
-                                ],
-                                className="table table-hover shadow-none",
-                                id="output-read",
-                            ),
-                        ]
-                    ),
-                ]
-            ),
-            dbc.Col(className="adaptive-hide", width=2, id="dummy-1"),
-        ],
-        style={"paddingTop": "10dvh"},
-    )
+    if not current_user.is_authenticated:
+        return html.Div()
+    else:
+        return dbc.Row(
+            [
+                dmc.Modal(
+                    title="Информация об отчете",
+                    id="ticket-read-modal",
+                    zIndex=10000,
+                    size="55%",
+                ),
+                dbc.Col(className="adaptive-hide", width=2),
+                dbc.Col(
+                    [
+                        html.Div(id="notifications-container"),
+                        dmc.Stack(
+                            [
+                                html.H3("Просмотр обращений", id="dummy"),
+                                html.Div(
+                                    [
+                                        dmc.LoadingOverlay(
+                                            id="loading-overlay-read",
+                                            zIndex=1000,
+                                            overlayProps={"radius": "sm", "blur": 2},
+                                        ),
+                                        dash_table.DataTable(
+                                            id="tickets-datatable",
+                                            page_current=0,
+                                            page_size=PAGE_SIZE,
+                                            page_action="custom",
+                                            css=[
+                                                {
+                                                    "selector": "tr:hover",
+                                                    "rule": "background-color: var(--bs-table-hover-bg) !important",
+                                                },
+                                                {
+                                                    "selector": "td",
+                                                    "rule": "background-color: inherit !important",
+                                                },
+                                                {
+                                                    "selector": "table",
+                                                    "rule": "font-family: var(--bs-font-sans-serif) !important",
+                                                },
+                                                {
+                                                    "selector": "th",
+                                                    "rule": "font-weight: 600 !important",
+                                                },
+                                            ],
+                                            hidden_columns=["id", "uuid"],
+                                        ),
+                                    ],
+                                    className="table table-hover shadow-none",
+                                    id="output-read",
+                                ),
+                            ]
+                        ),
+                    ]
+                ),
+                dbc.Col(className="adaptive-hide", width=2, id="dummy-1"),
+            ],
+            style={"paddingTop": "10dvh"},
+        )
 
 
 @callback(
@@ -129,8 +133,8 @@ def update_table(page_current, page_size, visible, avaliablity):
             conn,
         )
         df["id"] = df["uuid"]
-        df['text'] = df['text'].apply(lambda x: x[:15] + '...' if len(x) > 15 else x)
-        df['created_at'] = df['created_at'].dt.strftime('%H:%M:%S %d.%m.%Y')
+        df["text"] = df["text"].apply(lambda x: x[:15] + "..." if len(x) > 15 else x)
+        df["created_at"] = df["created_at"].dt.strftime("%H:%M:%S %d.%m.%Y")
 
         conn.close()
 
@@ -200,4 +204,3 @@ def view_ticket(active_cell, opened):
         return modal_content, not opened, no_update
     else:
         return [no_update] * 3
-

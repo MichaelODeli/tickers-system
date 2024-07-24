@@ -1,4 +1,4 @@
-# tickers-system
+# tickets-system
 Система тикетов для техподдержки пользователей, основанная на Dash.
 
 > [!IMPORTANT]

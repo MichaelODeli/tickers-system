@@ -14,3 +14,26 @@ p {
     color: var(--bs-white);
     padding: var(--bs-nav-link-padding-y) var(--bs-nav-link-padding-x);
 }
+
+input:invalid {
+    outline: none !important;
+}
+
+.nav-item>a.dropdown-toggle {
+    color: rgb(255 255 255 / 86%);
+}
+
+.row {
+    margin: 0 !important;
+}
+
+hr {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    border: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+.w-100 {
+    width: 100%;
+}

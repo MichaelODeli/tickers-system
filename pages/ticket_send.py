@@ -93,10 +93,9 @@ def layout():
                                 ),
                                 dmc.Textarea(
                                     label="Что случилось?",
-                                    placeholder="Опишите проблему как можно "
-                                    "подробнее. Что вы делали до возникновения"
-                                    " ошибки? При каких обстоятельствах она "
-                                    "возникла?",
+                                    placeholder="Опишите проблему как можно подробнее. "
+                                    "Что вы делали до возникновения ошибки? "
+                                    "При каких обстоятельствах она возникла?",
                                     w=500,
                                     autosize=True,
                                     minRows=3,
@@ -194,10 +193,9 @@ def send_ticket(
                 conn = db_connection.get_conn()
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        'INSERT INTO "tickets_simple" ("uuid", "user_id", '
-                        '"email", "district", "priority", "text") values '
-                        '(%(uuid)s, %(user_id)s, %(email)s, %(district)s, '
-                        '%(priority)s, %(text)s)',
+                        'INSERT INTO "tickets_simple" '
+                        '("uuid", "user_id", "email", "district", "priority", "text") '
+                        'values (%(uuid)s, %(user_id)s, %(email)s, %(district)s, %(priority)s, %(text)s);',
                         {
                             "uuid": ticket_uuid,
                             "user_id": userid,

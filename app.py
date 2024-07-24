@@ -22,6 +22,8 @@ from flask_login import (
     logout_user,
     current_user,
 )
+import hashlib
+from controllers.check_user import check_creditnals
 
 
 # mantine configuration
@@ -36,9 +38,9 @@ mantine_stylesheets = [
 ]
 
 # flask and dash configuration
-server = flask.Flask(__name__)
+server = flask.Flask('tickets_system')
 app = dash.Dash(
-    __name__,
+    'tickets_system',
     server=server,
     use_pages=True,
     external_stylesheets=[
@@ -142,8 +144,7 @@ def server_blocker(style):
             [
                 html.H5(
                     "Сервис технической поддержки недоступен. "
-                    "Обратитесь за помощью по внутреннему телефону "
-                    "или через мессенджер."
+                    "Обратитесь за помощью по внутреннему телефону или через мессенджер."
                 )
             ],
             style={"margin-top": "70px"},
@@ -161,15 +162,12 @@ def navbar_drawer(pathname):
             dbc.DropdownMenu(
                 children=[
                     # dbc.DropdownMenuItem("More pages", header=True),
-                    dbc.DropdownMenuItem(
-                        "Личный кабинет", href="/account", disabled=True
-                    ),
+                    dbc.DropdownMenuItem("Личный кабинет", href="/account"),
                     dbc.DropdownMenuItem("Выйти", href="/logout"),
                 ],
                 nav=True,
                 in_navbar=True,
                 label=f"Привет, {current_user.get_id()}!",
-                style={"color": "rgb(255 255 255 / 85%)"},
             )
             if current_user.is_authenticated and pathname != "/logout"
             else dbc.NavLink("Войти", href="/login")
@@ -204,7 +202,11 @@ def redirector(current_path, avaliablity):
 
 
 @callback(
-    [Output("url_login", "pathname")],
+    [
+        Output("url_login", "pathname"),
+        Output("uname-box", "error"),
+        Output("pwd-box", "error"),
+    ],
     [Input("login-button", "n_clicks")],
     [
         State("uname-box", "value"),
@@ -214,13 +216,24 @@ def redirector(current_path, avaliablity):
 )
 def login_button_click(n_clicks, username, password, remember):
     if n_clicks > 0:
-        if username == "test" and password == "test":
+        if username is None or username == '' or password is None or password == '':
+            return (
+                no_update,
+                'Имя пользователя не может быть пустым' if username is None or username == '' else False,
+                'Пароль не может быть пустым' if password is None or password == '' else False
+            )
+        elif check_creditnals(username, hashlib.md5(password.encode()).hexdigest()):
             user = User(username)
             login_user(user, remember=remember)
-            return ["/"]
+            return "/", False, False
         else:
-            return ["/login"]
-    return [no_update]  # Return a placeholder to indicate no update
+            return (
+                no_update,
+                "Имя пользователя или пароль неверные. Повторите попытку.",
+                True,
+            )
+    else:
+        return no_update, no_update, no_update
 
 
 dev = (

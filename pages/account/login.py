@@ -10,35 +10,37 @@ register_page(
 layout = (
     dmc.Stack(
         align="center",
-        # pos="relative",
         pt=50,
         w=300,
-        m='auto',
+        m="auto",
+        gap='md',
         children=[
-            html.H4('Авторизация'),
+            html.H4("Авторизация"),
             dcc.Location(id="url_login", refresh=True),
             dmc.TextInput(
                 label="Имя пользователя",  # потом будет табельный номер
                 placeholder="Ваше имя пользователя",
                 leftSection=DashIconify(icon="radix-icons:person"),
                 id="uname-box",
-                w='100%'
+                w="100%",
             ),
             dmc.PasswordInput(
                 label="Пароль",
                 placeholder="Ваш пароль",
                 leftSection=DashIconify(icon="radix-icons:lock-closed"),
                 id="pwd-box",
-                w='100%'
+                w="100%",
             ),
             dmc.Checkbox(
-                    label="Запомнить меня",
-                    checked=True,
-                    id='login-remember'
-                ),
+                label="Запомнить меня", checked=True, id="login-remember"
+            ),
             dmc.Button(
-                "Войти", id="login-button", variant="outline", fullWidth=True,
-                n_clicks=0),
+                "Войти",
+                id="login-button",
+                variant="outline",
+                fullWidth=True,
+                n_clicks=0,
+            ),
         ],
     ),
 )

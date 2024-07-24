@@ -32,3 +32,8 @@ INSERT INTO tickets_simple (uuid, user_id, email, district, priority, text, crea
 	('0190d9e4-3cef-71c6-ae03-4be1788137f7', '58315496', 'givezib_iko69@hotmail.com', 'economic', 'low', 'Помогите! Все сломалось!', '2024-07-22 10:07:10'),
 	('0190d9e4-3cef-71c6-ae03-4be179451d2a', '80736623', 'coxe_vovuvo89@aol.com', 'tech', 'medium', 'Помогите! Все сломалось!', '2024-07-22 10:07:10'),
 	('0190d9e4-d14e-71ac-8cad-78fca53b59bd', '88042150', 'xunulo-rova14@hotmail.com', 'economic', 'high', 'Помогите! Все сломалось!', '2024-07-22 10:07:10');
+
+INSERT INTO users (id, employee_id, first_name, middle_name, last_name, username, email, password, department_id) VALUES 
+	(1, 75806698, 'Евгений', 'Олегович', 'Иванов', 'test', 'admin@yandoff.online', MD5('test'), 0),
+	(2, 58971200, 'Григорий', 'Евгеньевич', 'Тротиллов', 'tost', 'guest@maion.space', MD5('tost'), 1),
+	(3, 58971201, 'Леонид', 'Ролеплеевич', 'Пахомов', 'tist', 'worker@maion.space', MD5('tist'), 2);

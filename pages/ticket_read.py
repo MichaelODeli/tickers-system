@@ -7,7 +7,6 @@ from dash import (
     State,
     no_update,
     dash_table,
-    dcc,
 )
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
@@ -21,7 +20,7 @@ warnings.filterwarnings("ignore")
 
 register_page(
     __name__,
-    path=f"/ticket_read",
+    path="/ticket_read",
 )
 PAGE_SIZE = 15
 
@@ -52,7 +51,10 @@ def layout(ticket_id=None):
                                         dmc.LoadingOverlay(
                                             id="loading-overlay-read",
                                             zIndex=1000,
-                                            overlayProps={"radius": "sm", "blur": 2},
+                                            overlayProps={
+                                                "radius": "sm",
+                                                "blur": 2,
+                                            },
                                         ),
                                         dash_table.DataTable(
                                             id="tickets-datatable",
@@ -114,14 +116,13 @@ def update_table(page_current, page_size, visible, avaliablity):
         ].tolist()[0]
 
         start_record = page_current * PAGE_SIZE
-        end_record = (page_current + 1) * PAGE_SIZE
+        # end_record = (page_current + 1) * PAGE_SIZE
         page_count = math.ceil(records / PAGE_SIZE)
 
         df = pd.read_sql_query(
-            # f"SELECT * FROM (SELECT * FROM tickets_simple ORDER BY created_at DESC, priority ASC) LIMIT {PAGE_SIZE} OFFSET {start_record};",
-            f"""SELECT * 
-            FROM tickets_simple 
-            ORDER BY 
+            f"""SELECT *
+            FROM tickets_simple
+            ORDER BY
             CASE
                 WHEN priority='high' THEN 1
                 WHEN priority='medium' THEN 2
@@ -133,7 +134,9 @@ def update_table(page_current, page_size, visible, avaliablity):
             conn,
         )
         df["id"] = df["uuid"]
-        df["text"] = df["text"].apply(lambda x: x[:15] + "..." if len(x) > 15 else x)
+        df["text"] = df["text"].apply(
+            lambda x: x[:15] + "..." if len(x) > 15 else x
+        )
         df["created_at"] = df["created_at"].dt.strftime("%H:%M:%S %d.%m.%Y")
 
         conn.close()

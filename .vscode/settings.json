@@ -1,6 +1,10 @@
-{
-    "black-formatter.args": [
-        "--line-length",
-        "78"
-    ]
-}
+// {
+//     "black-formatter.args": [
+//         "--line-length",
+//         "78"
+//     ],
+//     "flake8.args": [
+//         "--ignore",
+//         "E501"
+//     ]
+// }

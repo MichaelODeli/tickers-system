@@ -3,6 +3,7 @@ import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 from flask_login import current_user
 from dash_iconify import DashIconify
+from controllers import db_connection, users_controllers
 
 register_page(
     __name__,
@@ -10,10 +11,14 @@ register_page(
 )
 
 
-def layout():
-    if not current_user.is_authenticated:
+def layout(l="y"):
+    if not current_user.is_authenticated or l == "y" or not db_connection.test_conn():
         return html.Div()
     else:
+        username = current_user.get_id()
+        data = users_controllers.get_user_info(username=username)
+        
+
         return dbc.Row(
             [
                 dbc.Col(className="adaptive-hide", width=1),
@@ -32,15 +37,15 @@ def layout():
                                         [
                                             dmc.Text(label, fw=500)
                                             for label in [
-                                                "{last_name}",
-                                                "{first_name}",
-                                                "{middle_name}",
+                                                f"{data['last_name']}",
+                                                f"{data['first_name']}",
+                                                f"{data['middle_name']}",
                                             ]
                                         ],
                                         gap=5,
                                         justify="center",
                                     ),
-                                    dmc.Text("{department_name}", c="gray"),
+                                    dmc.Text(f"{data['department_name']}", c="gray"),
                                     html.Div(
                                         "",
                                         className="border-top mt-3 pb-3 w-100",
@@ -61,13 +66,13 @@ def layout():
                                             for label, content in [
                                                 [
                                                     "Табельный номер",
-                                                    "{employee_id}",
+                                                    f"{data['employee_id']}",
                                                 ],
                                                 [
                                                     "Электронная почта",
-                                                    "{email}",
+                                                    f"{data['email']}",
                                                 ],
-                                                ["Уровень доступа", "{level_name}"],
+                                                ["Уровень доступа", f"{data['level_name']} ({data['access_level']})"],
                                             ]
                                         ],
                                         className="w-100",
@@ -87,7 +92,7 @@ def layout():
                 ),
                 dbc.Col(
                     dmc.Accordion(
-                        id='account-accordion-data',
+                        id="account-accordion-data",
                         disableChevronRotation=True,
                         children=[
                             dmc.AccordionItem(
@@ -109,8 +114,8 @@ def layout():
                                             color="red",
                                             size=10,
                                             processing=True,
-                                            id='account-tickets-sents_indicator',
-                                            disabled=True
+                                            id="account-tickets-sents_indicator",
+                                            disabled=True,
                                         ),
                                     ),
                                     dmc.AccordionPanel(
@@ -138,12 +143,13 @@ def layout():
                                             color="red",
                                             size=10,
                                             processing=True,
-                                            id='account-tickets-ended_indicator',
-                                            disabled=True
+                                            id="account-tickets-ended_indicator",
+                                            disabled=True,
                                         ),
                                     ),
                                     dmc.AccordionPanel(
-                                        "account-tickets-ended_data", id="account-tickets-ended_data"
+                                        "account-tickets-ended_data",
+                                        id="account-tickets-ended_data",
                                     ),
                                 ],
                                 value="account-tickets-ended",
@@ -167,8 +173,8 @@ def layout():
                                             color="red",
                                             size=10,
                                             processing=True,
-                                            id='account-tickets-awaiting_indicator',
-                                            disabled=True
+                                            id="account-tickets-awaiting_indicator",
+                                            disabled=True,
                                         ),
                                     ),
                                     dmc.AccordionPanel(
@@ -190,20 +196,20 @@ def layout():
 
 
 @callback(
-    Output('account-tickets-sents_indicator', 'disabled'),
-    Output('account-tickets-sents_data', 'children'),
-    Output('account-tickets-ended_indicator', 'disabled'),
-    Output('account-tickets-ended_data', 'children'),
-    Output('account-tickets-awaiting_indicator', 'disabled'),
-    Output('account-tickets-awaiting_data', 'children'),
-    Input('account-accordion-data', 'value')
+    Output("account-tickets-sents_indicator", "disabled"),
+    Output("account-tickets-sents_data", "children"),
+    Output("account-tickets-ended_indicator", "disabled"),
+    Output("account-tickets-ended_data", "children"),
+    Output("account-tickets-awaiting_indicator", "disabled"),
+    Output("account-tickets-awaiting_data", "children"),
+    Input("account-accordion-data", "value"),
 )
 def test_controller_for_accordion(value):
     if value == None:
-        return [True, no_update]*3
-    elif 'sents' in value:
-        return [False, no_update] + [True, no_update]*2
-    elif 'ended' in value:
+        return [True, no_update] * 3
+    elif "sents" in value:
+        return [False, no_update] + [True, no_update] * 2
+    elif "ended" in value:
         return [True, no_update] + [False, no_update] + [True, no_update]
-    elif 'awaiting' in value:
-        return [True, no_update]*2 + [False, no_update]
+    elif "awaiting" in value:
+        return [True, no_update] * 2 + [False, no_update]

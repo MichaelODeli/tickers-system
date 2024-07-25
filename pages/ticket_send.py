@@ -21,9 +21,9 @@ register_page(
 )
 
 
-def layout():
+def layout(l='y'):
 
-    if not current_user.is_authenticated:
+    if not current_user.is_authenticated or l=='y':
         return html.Div()
     else:
         return dbc.Row(

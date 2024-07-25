@@ -23,7 +23,7 @@ from flask_login import (
     current_user,
 )
 import hashlib
-from controllers.check_user import check_creditnals
+from controllers.users_controllers import check_creditnals
 
 
 # mantine configuration
@@ -38,9 +38,9 @@ mantine_stylesheets = [
 ]
 
 # flask and dash configuration
-server = flask.Flask('tickets_system')
+server = flask.Flask("tickets_system")
 app = dash.Dash(
-    'tickets_system',
+    "tickets_system",
     server=server,
     use_pages=True,
     external_stylesheets=[
@@ -62,6 +62,7 @@ server.config.update(SECRET_KEY=os.getenv("SECRET_KEY"))
 login_manager = LoginManager()
 login_manager.init_app(server)
 login_manager.login_view = "/login"
+login_manager.session_protection = "strong"
 
 # User data model. It has to have at least self.id as a minimum
 
@@ -80,7 +81,6 @@ def load_user(username):
     So we'll simply return a User object with the passed in username.
     """
     return User(username)
-
 
 # app layout
 app.layout = dmc.MantineProvider(
@@ -104,7 +104,8 @@ app.layout = dmc.MantineProvider(
                     loaderProps={"size": "lg"},
                 ),
                 dcc.Store(id="server-avaliablity"),
-                dcc.Location(id="url", refresh=False),
+                # dcc.Location(id="url", refresh=False),
+                dcc.Location(id="url", refresh=True),
                 dcc.Location(id="redirect", refresh=True),
                 html.Div(id="user-status-div"),
             ],
@@ -131,12 +132,14 @@ app.layout = dmc.MantineProvider(
 @app.callback(
     Output("server-avaliablity", "data"),
     Output("server-blocker", "children"),
-    Input("server-blocker", "style"),
+    Input("mantine_theme", "style"),
     running=[
         (Output("loading-overlay", "visible"), True, False),
     ],
 )
 def server_blocker(style):
+    # print(f'server_blocker toggle {db_connection.test_conn()}')
+
     if db_connection.test_conn():
         return True, no_update
     else:
@@ -157,12 +160,14 @@ def server_blocker(style):
     Input("url", "pathname"),
 )
 def navbar_drawer(pathname):
+    # print(f'navbar toggle {pathname}')
+
     return [
         (
             dbc.DropdownMenu(
                 children=[
                     # dbc.DropdownMenuItem("More pages", header=True),
-                    dbc.DropdownMenuItem("Личный кабинет", href="/account"),
+                    dbc.DropdownMenuItem("Личный кабинет", href="/account?l=n"),
                     dbc.DropdownMenuItem("Выйти", href="/logout"),
                 ],
                 nav=True,
@@ -181,10 +186,12 @@ def navbar_drawer(pathname):
     State("server-avaliablity", "data"),
 )
 def redirector(current_path, avaliablity):
-    if not avaliablity:
-        return no_update
+    # print(f'redirect toggle {avaliablity}')
 
-    url = dash.no_update
+    # if not avaliablity:
+    #     return no_update
+
+    url = no_update
 
     if current_path == "/login":
         return no_update
@@ -212,15 +219,24 @@ def redirector(current_path, avaliablity):
         State("uname-box", "value"),
         State("pwd-box", "value"),
         State("login-remember", "checked"),
+        State("server-avaliablity", "data"),
     ],
 )
-def login_button_click(n_clicks, username, password, remember):
-    if n_clicks > 0:
-        if username is None or username == '' or password is None or password == '':
+def login_button_click(n_clicks, username, password, remember, avaliablity):
+    if n_clicks > 0 and avaliablity:
+        if username is None or username == "" or password is None or password == "":
             return (
                 no_update,
-                'Имя пользователя не может быть пустым' if username is None or username == '' else False,
-                'Пароль не может быть пустым' if password is None or password == '' else False
+                (
+                    "Имя пользователя не может быть пустым"
+                    if username is None or username == ""
+                    else False
+                ),
+                (
+                    "Пароль не может быть пустым"
+                    if password is None or password == ""
+                    else False
+                ),
             )
         elif check_creditnals(username, hashlib.md5(password.encode()).hexdigest()):
             user = User(username)
@@ -236,9 +252,7 @@ def login_button_click(n_clicks, username, password, remember):
         return no_update, no_update, no_update
 
 
-dev = (
-    True if not os.environ.get("AM_I_IN_A_DOCKER_CONTAINER", False) else False
-)
+dev = True if not os.environ.get("AM_I_IN_A_DOCKER_CONTAINER", False) else False
 
 if __name__ == "__main__":
     if dev:

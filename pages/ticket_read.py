@@ -24,11 +24,11 @@ register_page(
 )
 PAGE_SIZE = 15
 
-
-def layout(ticket_id=None):
+# @login_required
+def layout(l='y'):
     global PAGE_SIZE
 
-    if not current_user.is_authenticated:
+    if not current_user.is_authenticated or l=='y':
         return html.Div()
     else:
         return dbc.Row(

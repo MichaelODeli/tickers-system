@@ -34,7 +34,7 @@ def test_conn(dbname=DBNAME, user=USER, password=PASSWORD, host=HOST, port=PORT)
         """
         conn.close()
         return True
-    except:
+    except Exception:
         """
         Если возникает ошибка при установке соединения, функция возвращает False.
         """

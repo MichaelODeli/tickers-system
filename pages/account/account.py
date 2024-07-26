@@ -10,14 +10,16 @@ register_page(
     path="/account",
 )
 
+USERDATA = ''
 
 def layout(l="y"):
+    global USERDATA
+
     if not current_user.is_authenticated or l == "y" or not db_connection.test_conn():
         return html.Div()
     else:
         username = current_user.get_id()
-        data = users_controllers.get_user_info(username=username)
-        
+        USERDATA = users_controllers.get_user_info(username=username)
 
         return dbc.Row(
             [
@@ -37,15 +39,15 @@ def layout(l="y"):
                                         [
                                             dmc.Text(label, fw=500)
                                             for label in [
-                                                f"{data['last_name']}",
-                                                f"{data['first_name']}",
-                                                f"{data['middle_name']}",
+                                                f"{USERDATA['last_name']}",
+                                                f"{USERDATA['first_name']}",
+                                                f"{USERDATA['middle_name']}",
                                             ]
                                         ],
                                         gap=5,
                                         justify="center",
                                     ),
-                                    dmc.Text(f"{data['department_name']}", c="gray"),
+                                    dmc.Text(f"{USERDATA['position_name']}", c="gray"),
                                     html.Div(
                                         "",
                                         className="border-top mt-3 pb-3 w-100",
@@ -66,13 +68,20 @@ def layout(l="y"):
                                             for label, content in [
                                                 [
                                                     "Табельный номер",
-                                                    f"{data['employee_id']}",
+                                                    f"{USERDATA['employee_id']}",
                                                 ],
                                                 [
                                                     "Электронная почта",
-                                                    f"{data['email']}",
+                                                    f"{USERDATA['email']}",
                                                 ],
-                                                ["Уровень доступа", f"{data['level_name']} ({data['access_level']})"],
+                                                [
+                                                    "Отдел",
+                                                    f"{USERDATA['department_name']}",
+                                                ],
+                                                [
+                                                    "Уровень доступа",
+                                                    f"{USERDATA['level_name']} ({USERDATA['access_level']})",
+                                                ],
                                             ]
                                         ],
                                         className="w-100",

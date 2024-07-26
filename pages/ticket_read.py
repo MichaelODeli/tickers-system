@@ -15,12 +15,14 @@ from controllers import db_connection
 import math
 import warnings
 from flask_login import current_user
+from controllers import users_controllers
+from templates.templates_user_roles import user_has_no_access_template
 
 warnings.filterwarnings("ignore")
 
 register_page(
     __name__,
-    path="/ticket_read",
+    path="/tickets/read",
 )
 PAGE_SIZE = 15
 
@@ -30,6 +32,12 @@ def layout(l='y'):
 
     if not current_user.is_authenticated or l=='y':
         return html.Div()
+    
+    username = current_user.get_id()
+    userdata = users_controllers.get_user_info(username=username)
+    # проверка доступа к просмотру тикетов
+    if not userdata['can_read_reports']:
+        return user_has_no_access_template()
     else:
         return dbc.Row(
             [

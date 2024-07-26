@@ -33,7 +33,117 @@ INSERT INTO tickets_simple (uuid, user_id, email, district, priority, text, crea
 	('0190d9e4-3cef-71c6-ae03-4be179451d2a', '80736623', 'coxe_vovuvo89@aol.com', 'tech', 'medium', 'Помогите! Все сломалось!', '2024-07-22 10:07:10'),
 	('0190d9e4-d14e-71ac-8cad-78fca53b59bd', '88042150', 'xunulo-rova14@hotmail.com', 'economic', 'high', 'Помогите! Все сломалось!', '2024-07-22 10:07:10');
 
-INSERT INTO users (id, employee_id, first_name, middle_name, last_name, username, email, password, department_id) VALUES 
-	(1, 75806698, 'Евгений', 'Олегович', 'Иванов', 'test', 'admin@yandoff.online', MD5('test'), 0),
-	(2, 58971200, 'Григорий', 'Евгеньевич', 'Тротиллов', 'tost', 'guest@maion.space', MD5('tost'), 1),
-	(3, 58971201, 'Леонид', 'Ролеплеевич', 'Пахомов', 'tist', 'worker@maion.space', MD5('tist'), 2);
+-- 1
+INSERT INTO
+  access_levels (id, level_name)
+VALUES
+  (1, 'Без доступа');
+
+-- 2
+INSERT INTO
+  access_levels (id, level_name, can_create_reports)
+VALUES
+  (2, 'Только отправка', True);
+
+-- 3
+INSERT INTO
+  access_levels (id, level_name, can_create_reports, can_read_reports)
+VALUES
+  (3, 'Отправка и просмотр', True, True);
+
+-- 4
+INSERT INTO
+  access_levels (
+    id, 
+    level_name,
+    can_create_reports,
+    can_read_reports,
+    can_answer_reports
+  )
+VALUES
+  (4, 'Отправка, просмотр и ответ', True, True, True);
+
+-- 5
+INSERT INTO
+  access_levels (
+    id, 
+    level_name,
+    can_create_reports,
+    can_read_reports,
+    can_view_analytics_data
+  )
+VALUES
+  (5, 'Отправка, просмотр и аналитика', True, True, True);
+
+
+INSERT INTO
+  access_levels (
+    id, 
+    level_name,
+    can_create_reports,
+    can_read_reports,
+    can_answer_reports,
+    can_view_analytics_data,
+    admin_access
+  )
+VALUES
+  (6, 'Администрирование', True, True, True, True, True);
+
+
+-- INSERT INTO
+--   departments (id, department_name, access_level)
+-- VALUES
+--   (0, 'Администратор сервиса поддержки', 6),
+--   (1, 'Гости', 1),
+--   (2, 'Сотрудники', 2),
+--   (3, 'Специалисты технической поддержки', 4),
+--   (4, 'Аналитик', 5);
+
+INSERT INTO
+  departments (id, department_name)
+VALUES
+  (0, 'Гости'),
+  (1, 'Отдел технической поддержки'),
+  (2, 'Отдел охраны труда'),
+  (3, 'Отдел информатизации'),
+  (4, 'Отдел закупок'),
+  (5, 'Бухгалтерия');
+
+INSERT INTO
+  positions (id, position_name, department_id, access_level)
+VALUES
+  (0, 'Администратор сервиса поддержки', 1, 6),
+  (1, 'Аналитик', 1, 5),
+  (2, 'Специалист технической поддержки', 1, 4),
+  (3, 'Младший сотрудник', 2, 2),
+  (4, 'Младший сотрудник', 3, 2),
+  (5, 'Младший сотрудник', 4, 2),
+  (6, 'Младший сотрудник', 5, 2),
+  (7, 'Гость', 0, 1);
+
+
+INSERT INTO
+  priority_list (id, priority_name)
+VALUES
+  (0, 'Низкий'),
+  (1, 'Обычный'),
+  (2, 'Высокий');
+
+
+INSERT INTO
+  problems_list (id, problem_name)
+VALUES
+  (1, 'Общее'),
+  (2, 'Электроника'),
+  (3, 'Документооборот'),
+  (4, 'Информ. система'),
+  (5, 'Почта'),
+  (6, '1С');
+
+
+INSERT INTO users (id, employee_id, first_name, middle_name, last_name, username, email, password, position_id) VALUES 
+	(1, 75806698, 'Евгений', 'Олегович', 'Иванов', 'test', 'admin@internal.portal', MD5('test'), 0),
+	(2, 58971200, 'Григорий', 'Евгеньевич', 'Тротиллов', 'tost', 'analitic@internal.portal', MD5('tost'), 1),
+	(3, 58971201, 'Леонид', 'Ролеплеевич', 'Пахомов', 'tist', 'tech_support@internal.portal', MD5('tist'), 2),
+	(4, 95806698, 'Даниил', 'Олегович', 'Иванов', 'tast', 'ml_sotr1@internal.portal', MD5('tast'), 3),
+	(5, 58071201, 'Леонид', 'Нуборпшевич', 'Пахомов', 'tyst', 'guest@internal.portal', MD5('tyst'), 7);

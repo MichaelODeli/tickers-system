@@ -24,23 +24,17 @@ def get_user_info(username):
     with conn.cursor() as cursor:
         cursor.execute(
             """SELECT * FROM 
-            (SELECT id as u_id, employee_id, first_name, middle_name, last_name, username, 
-            email, department_id FROM users WHERE username = %(username)s) u 
-            left join departments d on u.department_id = d.id;""",
+                (
+                    SELECT id as user_id, employee_id, first_name, middle_name, last_name, username, email, position_id 
+                    FROM users WHERE username = %(username)s
+                ) u
+                left join (select id as pos_id, department_id, access_level, position_name from positions) p on u.position_id = p.pos_id
+                left join (select id as dep_id, department_name from departments) d on d.dep_id = p.department_id
+                left join access_levels al on al.id = p.access_level;""",
             {"username": username},
         )
         desc = cursor.description
         column_names = [col[0] for col in desc]
-        basic_user_data = [dict(zip(column_names, row)) for row in cursor.fetchall()][0]
-
-        cursor.execute(
-            "SELECT * FROM access_levels WHERE id = %(level_id)s;",
-            {"level_id": basic_user_data['access_level']},
-        )
-        desc = cursor.description
-        column_names = [col[0] for col in desc]
-        access_data = [dict(zip(column_names, row)) for row in cursor.fetchall()][0]
-
-        data = dict(list(basic_user_data.items()) + list(access_data.items()))
+        data = [dict(zip(column_names, row)) for row in cursor.fetchall()][0]
     
     return data

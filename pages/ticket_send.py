@@ -14,10 +14,12 @@ from uuid_extensions import uuid7str
 from controllers import db_connection
 from flask_login import current_user
 import re
+from controllers import users_controllers
+from templates.templates_user_roles import user_has_no_access_template
 
 register_page(
     __name__,
-    path="/ticket_send",
+    path="/tickets/send",
 )
 
 
@@ -25,6 +27,12 @@ def layout(l='y'):
 
     if not current_user.is_authenticated or l=='y':
         return html.Div()
+    
+    username = current_user.get_id()
+    userdata = users_controllers.get_user_info(username=username)
+    # проверка доступа к отправке тикетов
+    if not userdata['can_create_reports']:
+        return user_has_no_access_template()
     else:
         return dbc.Row(
             [

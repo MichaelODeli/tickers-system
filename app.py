@@ -186,10 +186,6 @@ def navbar_drawer(pathname):
     State("server-avaliablity", "data"),
 )
 def redirector(current_path, avaliablity):
-    # print(f'redirect toggle {avaliablity}')
-
-    # if not avaliablity:
-    #     return no_update
 
     url = no_update
 
@@ -238,7 +234,7 @@ def login_button_click(n_clicks, username, password, remember, avaliablity):
                     else False
                 ),
             )
-        elif check_creditnals(username, hashlib.md5(password.encode()).hexdigest()):
+        elif check_creditnals(username, hashlib.sha256(password.encode('utf-8')).hexdigest()):
             user = User(username)
             login_user(user, remember=remember)
             return "/", False, False

@@ -10,7 +10,7 @@ from dash import (
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 from dash_iconify import DashIconify
-from uuid_extensions import uuid7str
+from uuid import uuid4
 from controllers import db_connection
 from flask_login import current_user
 import re
@@ -22,16 +22,19 @@ register_page(
     path="/tickets/send",
 )
 
+USERDATA = ''
 
 def layout(l='y'):
 
     if not current_user.is_authenticated or l=='y':
         return html.Div()
     
+    global USERDATA
+    
     username = current_user.get_id()
-    userdata = users_controllers.get_user_info(username=username)
+    USERDATA = users_controllers.get_user_info(username=username)
     # проверка доступа к отправке тикетов
-    if not userdata['can_create_reports']:
+    if not USERDATA['can_create_reports']:
         return user_has_no_access_template()
     else:
         return dbc.Row(
@@ -43,54 +46,17 @@ def layout(l='y'):
                         dmc.Stack(
                             [
                                 dmc.TextInput(
-                                    label="Электронная почта для связи",
-                                    w=300,
-                                    placeholder="Электронная почта",
+                                    label="Электронная почта, на которую придет ответ",
+                                    w=400,
                                     leftSection=DashIconify(
                                         icon="ic:round-alternate-email"
                                     ),
-                                    id="ticket-email",
-                                ),
-                                dmc.Select(
-                                    label="Ваш отдел",
-                                    data=[
-                                        {
-                                            "value": "economic",
-                                            "label": "Экономический",
-                                        },
-                                        {
-                                            "value": "tech",
-                                            "label": "Технический",
-                                        },
-                                        {
-                                            "value": "ohs",
-                                            "label": "Охрана труда",
-                                        },
-                                    ],
-                                    searchable=True,
-                                    w=300,
-                                    rightSection=DashIconify(
-                                        icon="radix-icons:chevron-down"
-                                    ),
-                                    id="ticket-district",
-                                ),
-                                dmc.NumberInput(
-                                    label="Ваш табельный номер",
-                                    w=300,
-                                    hideControls=True,
-                                    placeholder="Введите 8 цифр",
-                                    id="ticket-userid",
+                                    value=USERDATA['email'],
+                                    disabled=True
                                 ),
                                 dmc.Select(
                                     label="Срочность",
-                                    data=[
-                                        {"value": "high", "label": "Высокая"},
-                                        {
-                                            "value": "medium",
-                                            "label": "Средняя",
-                                        },
-                                        {"value": "low", "label": "Низкая"},
-                                    ],
+                                    data=users_controllers.get_priority_list(),
                                     searchable=True,
                                     w=300,
                                     rightSection=DashIconify(
@@ -98,6 +64,17 @@ def layout(l='y'):
                                     ),
                                     placeholder="Не завышайте приоритет",
                                     id="ticket-priority",
+                                ),
+                                dmc.Select(
+                                    label="Категория проблемы",
+                                    data=users_controllers.get_problems_list(),
+                                    searchable=True,
+                                    w=300,
+                                    rightSection=DashIconify(
+                                        icon="radix-icons:chevron-down"
+                                    ),
+                                    placeholder="Укажите категорию",
+                                    id="ticket-problem",
                                 ),
                                 dmc.Textarea(
                                     label="Что случилось?",
@@ -169,22 +146,19 @@ def layout(l='y'):
     Output("ticket-send-modal", "opened", allow_duplicate=True),
     Input("ticket-send", "n_clicks"),
     State("server-avaliablity", "data"),
-    State("ticket-email", "value"),
-    State("ticket-district", "value"),
-    State("ticket-userid", "value"),
-    State("ticket-priority", "value"),
     State("ticket-text", "value"),
+    State("ticket-problem", "value"),
+    State("ticket-priority", "value"),
     State("ticket-send-modal", "opened"),
     prevent_initial_call=True,
 )
 def send_ticket(
-    n_clicks, avaliablity, email, district, userid, priority, text, opened
+    n_clicks, avaliablity, text, problem, priority, opened
 ):
     if avaliablity:
         if (
-            None in [email, district, userid, priority, text]
-            or "" in [email, district, userid, priority, text]
-            or not re.match(r"[^@]+@[^@]+\.[^@]+", email)
+            None in [text, problem, priority]
+            or "" in [text, problem, priority]
         ):
             return "Не все поля правильно заполнены", no_update, no_update
         elif len(text) > 1024:
@@ -193,24 +167,24 @@ def send_ticket(
                 no_update,
                 no_update,
             )
-        elif len(str(userid)) != 8:
-            return "Табельный номер состоит из 8 цифр", no_update, no_update
         else:
             try:
-                ticket_uuid = uuid7str()
+                global USERDATA
+
+                # ticket_uuid = uuid7str()
+                ticket_uuid = str(uuid4)
                 conn = db_connection.get_conn()
                 with conn.cursor() as cursor:
                     cursor.execute(
-                        'INSERT INTO "tickets_simple" '
-                        '("uuid", "user_id", "email", "district", "priority", "text") '
-                        'values (%(uuid)s, %(user_id)s, %(email)s, %(district)s, %(priority)s, %(text)s);',
+                        'INSERT INTO "tickets" '
+                        '("uuid", "reporter_id", "priority_id", "problem_id", "text") '
+                        'values (%(uuid)s, %(reporter_id)s, %(priority_id)s, %(problem_id)s, %(text)s);',
                         {
                             "uuid": ticket_uuid,
-                            "user_id": userid,
-                            "email": email,
-                            "district": district,
-                            "priority": priority,
-                            "text": text,
+                            "reporter_id": USERDATA['user_id'],
+                            "priority_id": int(priority),
+                            "problem_id": int(problem),
+                            "text": text
                         },
                     )
                 conn.commit()

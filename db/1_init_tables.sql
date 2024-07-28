@@ -63,6 +63,20 @@ create table
     "problem_name" varchar(50) not null
   );
 
+create table
+  "steps_list" (
+    "id" serial primary key,
+    "step_name" varchar(50) not null
+);
+
+create table
+  "status_list" (
+    "id" serial primary key,
+    "status_name" varchar(50) not null,
+    "step_id" smallint not null,
+    FOREIGN KEY (step_id) REFERENCES steps_list (id) ON DELETE CASCADE
+  );
+
 
 create table
   "tickets" (
@@ -70,9 +84,25 @@ create table
     "reporter_id" INTEGER not null,
     "priority_id" INTEGER not null DEFAULT 2,
     "problem_id" INTEGER not null DEFAULT 1,
+    "status_id" smallint not null DEFAULT 0,
     "text" varchar(1024) not null,
     "created_at" timestamp not null default NOW(),
+    "updated_at" timestamp not null default NOW(),
     FOREIGN KEY (reporter_id) REFERENCES users (id) ON DELETE CASCADE,
     FOREIGN KEY (priority_id) REFERENCES priority_list (id) ON DELETE CASCADE,
-    FOREIGN KEY (problem_id) REFERENCES problems_list (id) ON DELETE CASCADE
+    FOREIGN KEY (problem_id) REFERENCES problems_list (id) ON DELETE CASCADE,
+    FOREIGN KEY (status_id) REFERENCES status_list (id) ON DELETE CASCADE
   );
+
+create table "tickets_review" (
+  "uuid" uuid not null,
+  "reviewer_id" INTEGER not null,
+  "previous_status" INTEGER not null,
+  "assigned_status" INTEGER not null,
+  "answer" varchar(1024) not null,
+  "created_at" timestamp not null default NOW(),
+  FOREIGN KEY (reviewer_id) REFERENCES users (id) ON DELETE CASCADE,
+  FOREIGN KEY (previous_status) REFERENCES status_list (id) ON DELETE CASCADE,
+  FOREIGN KEY (assigned_status) REFERENCES status_list (id) ON DELETE CASCADE,
+  FOREIGN KEY (uuid) REFERENCES tickets (uuid) ON DELETE CASCADE
+)

@@ -1,23 +1,27 @@
-from dash import html, register_page, callback, Input, Output, no_update
+from dash import html, register_page, callback, Input, Output, no_update, dash_table
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 from flask_login import current_user
 from dash_iconify import DashIconify
-from controllers import db_connection, users_controllers
+from controllers import db_connection, users_controllers, tickets_controllers
+from assets import datatable_style
 
 register_page(
     __name__,
     path="/account",
 )
 
+USERDATA = ""
+
 
 def layout(l="y"):
+    global USERDATA
+
     if not current_user.is_authenticated or l == "y" or not db_connection.test_conn():
         return html.Div()
     else:
         username = current_user.get_id()
-        data = users_controllers.get_user_info(username=username)
-        
+        USERDATA = users_controllers.get_user_info(username=username)
 
         return dbc.Row(
             [
@@ -37,15 +41,15 @@ def layout(l="y"):
                                         [
                                             dmc.Text(label, fw=500)
                                             for label in [
-                                                f"{data['last_name']}",
-                                                f"{data['first_name']}",
-                                                f"{data['middle_name']}",
+                                                f"{USERDATA['last_name']}",
+                                                f"{USERDATA['first_name']}",
+                                                f"{USERDATA['middle_name']}",
                                             ]
                                         ],
                                         gap=5,
                                         justify="center",
                                     ),
-                                    dmc.Text(f"{data['department_name']}", c="gray"),
+                                    dmc.Text(f"{USERDATA['position_name']}", c="gray"),
                                     html.Div(
                                         "",
                                         className="border-top mt-3 pb-3 w-100",
@@ -66,13 +70,20 @@ def layout(l="y"):
                                             for label, content in [
                                                 [
                                                     "Табельный номер",
-                                                    f"{data['employee_id']}",
+                                                    f"{USERDATA['employee_id']}",
                                                 ],
                                                 [
                                                     "Электронная почта",
-                                                    f"{data['email']}",
+                                                    f"{USERDATA['email']}",
                                                 ],
-                                                ["Уровень доступа", f"{data['level_name']} ({data['access_level']})"],
+                                                [
+                                                    "Отдел",
+                                                    f"{USERDATA['department_name']}",
+                                                ],
+                                                [
+                                                    "Уровень доступа",
+                                                    f"{USERDATA['level_name']} ({USERDATA['access_level']})",
+                                                ],
                                             ]
                                         ],
                                         className="w-100",
@@ -94,6 +105,7 @@ def layout(l="y"):
                     dmc.Accordion(
                         id="account-accordion-data",
                         disableChevronRotation=True,
+                        variant="separated",
                         children=[
                             dmc.AccordionItem(
                                 [
@@ -119,7 +131,13 @@ def layout(l="y"):
                                         ),
                                     ),
                                     dmc.AccordionPanel(
-                                        "account-tickets-sents_data",
+                                        dmc.Stack(
+                                            gap="md",
+                                            children=[
+                                                dmc.Skeleton(h=8, radius="xl"),
+                                            ]
+                                            * 4,
+                                        ),
                                         id="account-tickets-sents_data",
                                     ),
                                 ],
@@ -128,8 +146,10 @@ def layout(l="y"):
                             dmc.AccordionItem(
                                 [
                                     dmc.AccordionControl(
-                                        dmc.Text(
-                                            "Завершенные обращения", className="p-1"
+                                        disabled=True,
+                                        children=dmc.Text(
+                                            "Завершенные обращения",
+                                            className="p-1",
                                         ),
                                         icon=dmc.Indicator(
                                             DashIconify(
@@ -148,7 +168,6 @@ def layout(l="y"):
                                         ),
                                     ),
                                     dmc.AccordionPanel(
-                                        "account-tickets-ended_data",
                                         id="account-tickets-ended_data",
                                     ),
                                 ],
@@ -157,7 +176,8 @@ def layout(l="y"):
                             dmc.AccordionItem(
                                 [
                                     dmc.AccordionControl(
-                                        dmc.Text(
+                                        disabled=True,
+                                        children=dmc.Text(
                                             "Обращения, ожидающие уточнения",
                                             className="p-1",
                                         ),
@@ -178,7 +198,6 @@ def layout(l="y"):
                                         ),
                                     ),
                                     dmc.AccordionPanel(
-                                        "account-tickets-awaiting_data",
                                         id="account-tickets-awaiting_data",
                                     ),
                                 ],
@@ -203,13 +222,36 @@ def layout(l="y"):
     Output("account-tickets-awaiting_indicator", "disabled"),
     Output("account-tickets-awaiting_data", "children"),
     Input("account-accordion-data", "value"),
+    prevent_initial_call=True,
 )
 def test_controller_for_accordion(value):
+    global USERDATA
+
     if value == None:
         return [True, no_update] * 3
     elif "sents" in value:
-        return [False, no_update] + [True, no_update] * 2
-    elif "ended" in value:
-        return [True, no_update] + [False, no_update] + [True, no_update]
-    elif "awaiting" in value:
-        return [True, no_update] * 2 + [False, no_update]
+        df = tickets_controllers.get_tickets_info(user_id=USERDATA["user_id"])
+
+        return [
+            False,
+            dmc.Stack(
+                [
+                    dmc.Text("Отображаются 5 последних отправленных обращений"),
+                    html.Div(
+                        dash_table.DataTable(
+                            id="tickets-datatable-user",
+                            css=datatable_style.datatable_list,
+                            hidden_columns=["id", "uuid"],
+                            data=df.to_dict("records"),
+                            columns=[{"name": i, "id": i} for i in sorted(df.columns)],
+                            style_data_conditional=datatable_style.styles_data_conditional,
+                        ),
+                        className="table table-hover shadow-none w-100",
+                    ),
+                ],
+                w="100%",
+            ),
+        ] + [
+            True,
+            no_update,
+        ] * 2

@@ -15,21 +15,31 @@ from controllers import db_connection
 import math
 import warnings
 from flask_login import current_user
+from controllers import users_controllers, tickets_controllers
+from templates.templates_user_roles import user_has_no_access_template
+from assets import datatable_style
 
 warnings.filterwarnings("ignore")
 
 register_page(
     __name__,
-    path="/ticket_read",
+    path="/tickets/read",
 )
-PAGE_SIZE = 15
+PAGE_SIZE = 18
+
 
 # @login_required
-def layout(l='y'):
+def layout(l="y"):
     global PAGE_SIZE
 
-    if not current_user.is_authenticated or l=='y':
+    if not current_user.is_authenticated or l == "y":
         return html.Div()
+
+    username = current_user.get_id()
+    userdata = users_controllers.get_user_info(username=username)
+    # проверка доступа к просмотру тикетов
+    if not userdata["can_read_reports"]:
+        return user_has_no_access_template()
     else:
         return dbc.Row(
             [
@@ -61,24 +71,8 @@ def layout(l='y'):
                                             page_current=0,
                                             page_size=PAGE_SIZE,
                                             page_action="custom",
-                                            css=[
-                                                {
-                                                    "selector": "tr:hover",
-                                                    "rule": "background-color: var(--bs-table-hover-bg) !important",
-                                                },
-                                                {
-                                                    "selector": "td",
-                                                    "rule": "background-color: inherit !important",
-                                                },
-                                                {
-                                                    "selector": "table",
-                                                    "rule": "font-family: var(--bs-font-sans-serif) !important",
-                                                },
-                                                {
-                                                    "selector": "th",
-                                                    "rule": "font-weight: 600 !important",
-                                                },
-                                            ],
+                                            css=datatable_style.datatable_list,
+                                            style_data_conditional=datatable_style.styles_data_conditional,
                                             hidden_columns=["id", "uuid"],
                                         ),
                                     ],
@@ -99,7 +93,6 @@ def layout(l='y'):
     Output("tickets-datatable", "data"),
     Output("tickets-datatable", "columns"),
     Output("tickets-datatable", "page_count"),
-    Output("tickets-datatable", "style_data_conditional"),
     Input("tickets-datatable", "page_current"),
     Input("tickets-datatable", "page_size"),
     Input("loading-overlay-read", "visible"),
@@ -111,53 +104,22 @@ def update_table(page_current, page_size, visible, avaliablity):
 
     if avaliablity:
         conn = db_connection.get_conn()
-        records = pd.read_sql("select count(*) from tickets_simple;", conn)[
-            "count"
-        ].tolist()[0]
+        records = pd.read_sql("select count(*) from tickets;", conn)["count"].tolist()[
+            0
+        ]
 
         start_record = page_current * PAGE_SIZE
         # end_record = (page_current + 1) * PAGE_SIZE
         page_count = math.ceil(records / PAGE_SIZE)
 
-        df = pd.read_sql_query(
-            f"""SELECT *
-            FROM tickets_simple
-            ORDER BY
-            CASE
-                WHEN priority='high' THEN 1
-                WHEN priority='medium' THEN 2
-                WHEN priority='low' THEN 3
-                ELSE 0
-            END,priority,
-            created_at DESC
-            LIMIT {PAGE_SIZE} OFFSET {start_record};""",
-            conn,
-        )
-        df["id"] = df["uuid"]
-        df["text"] = df["text"].apply(
-            lambda x: x[:15] + "..." if len(x) > 15 else x
-        )
-        df["created_at"] = df["created_at"].dt.strftime("%H:%M:%S %d.%m.%Y")
+        df = tickets_controllers.get_tickets_info(limit=PAGE_SIZE, offset=start_record)
 
         conn.close()
 
         return (
             df.to_dict("records"),
-            [{"name": i, "id": i} for i in sorted(df.columns)],
+            [{"name": i, "id": i} for i in df.columns],
             page_count,
-            [
-                {
-                    "if": {"state": "selected"},
-                    "border": "1px !important",
-                },
-                {
-                    "if": {
-                        "filter_query": '{priority} contains "high"',
-                    },
-                    "fontWeight": "600",
-                    "color": "red",
-                },
-            ],
         )
     else:
         return [no_update] * 4
@@ -176,14 +138,18 @@ def update_table(page_current, page_size, visible, avaliablity):
 )
 def view_ticket(active_cell, opened):
     if active_cell is not None:
-        conn = db_connection.get_conn()
-        df = pd.read_sql(
-            f"SELECT * FROM tickets_simple WHERE uuid = '{active_cell['row_id']}';",
-            conn,
-        )
-        conn.close()
+        # conn = db_connection.get_conn()
+        # df = pd.read_sql(
+        #     f"SELECT * FROM tickets WHERE uuid = '{active_cell['row_id']}';",
+        #     conn,
+        # )
+        # conn.close()
 
-        ticket_details = df.to_dict("records")[0]
+        # ticket_details = df.to_dict("records")[0]
+
+        ticket_details = tickets_controllers.get_tickets_info(
+            return_df=False, ticket_uuid=active_cell["row_id"]
+        )
 
         modal_content = dbc.Table(
             [

@@ -8,6 +8,7 @@ def get_query_string(all=False, limit=None, offset=None, ticket_uuid="", user_id
     )
     limits = f"LIMIT {limit} OFFSET {offset}" if all else ""
     where_userid = f"WHERE reporter_id = {user_id}" if user_id != None else ""
+    orderby = 'ORDER BY priority_id DESC, created_at DESC' if user_id == None else 'ORDER BY created_at DESC'
 
     query_string = f"""SELECT * FROM (SELECT * FROM {table_name} {where_userid}) t 
     left join (select id as probl_id, problem_name from problems_list) p on t.problem_id = p.probl_id 
@@ -15,7 +16,7 @@ def get_query_string(all=False, limit=None, offset=None, ticket_uuid="", user_id
     left join (select id as rep_id, username, first_name, middle_name, last_name, position_id, email from users) u on u.rep_id = t.reporter_id 
     left join (select id as pos_id, department_id, position_name from positions) po on u.position_id = po.pos_id
     left join (select id as dep_id, department_name from departments) d on d.dep_id = po.department_id
-    ORDER BY priority_id DESC, created_at DESC 
+    {orderby} 
     {limits};""".replace(
         "\n", ""
     )

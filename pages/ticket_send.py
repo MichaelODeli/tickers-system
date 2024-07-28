@@ -172,7 +172,7 @@ def send_ticket(
                 global USERDATA
 
                 # ticket_uuid = uuid7str()
-                ticket_uuid = str(uuid4)
+                ticket_uuid = str(uuid4())
                 conn = db_connection.get_conn()
                 with conn.cursor() as cursor:
                     cursor.execute(

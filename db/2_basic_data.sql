@@ -84,7 +84,7 @@ VALUES
 INSERT INTO
   status_list (id, status_name, step_id)
 VALUES
-  (0, 'Получен', 0),
+  (0, 'Создан', 0),
   (1, 'На рассмотрении', 1),
   (2, 'В работе', 1),
   (3, 'Отложен', 1),

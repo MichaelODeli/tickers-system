@@ -7,17 +7,30 @@ def get_query_strings(
 ):
     limits = f"LIMIT {limit} OFFSET {offset}"
     orderby = "ORDER BY priority_id DESC, created_at DESC"
+    where = ""
+
+    orderby_without_priority = "ORDER BY created_at DESC"
     if mode == "multi":
         if query_filter == "unanswered":
             table_name = f"(select * from tickets where status_id = 0)"
         elif query_filter == "this_reviewer":
-            table_name = "tickets"  # for future releases
+            table_name = "tickets"
+        elif query_filter in [
+            "account_last5sended",
+            "account_last5awaiting",
+            "account_last5ended",
+        ]:
+            table_name = f"(select * from tickets where reporter_id = {user_id})"
+            orderby = orderby_without_priority
+            if query_filter == "account_last5sended":
+                where = "where step_id = 0"
+            if query_filter == "account_last5awaiting":
+                where = "where step_id = 1"
+            if query_filter == "account_last5ended":
+                where = "where step_id = 2"
         else:
             table_name = "tickets"
-    if mode == "account_last5sended":
-        table_name = f"(select * from tickets where reporter_id = {user_id})"
-        orderby = "ORDER BY created_at DESC"
-    if mode == "single":
+    if mode == "single" and query_filter == "by_uuid":
         table_name = f"(select * from tickets where uuid = '{ticket_uuid}')"
 
     query_string = f"""SELECT * FROM {table_name} t 
@@ -26,12 +39,15 @@ def get_query_strings(
     left join (select id as rep_id, username, first_name, middle_name, last_name, position_id, email from users) u on u.rep_id = t.reporter_id 
     left join (select id as pos_id, department_id, position_name from positions) po on u.position_id = po.pos_id
     left join (select id as dep_id, department_name from departments) d on d.dep_id = po.department_id
-    left join (select id as stat_id, status_name from status_list) s on s.stat_id = t.status_id
+    left join (select id as stat_id, status_name, step_id from status_list) s on s.stat_id = t.status_id
+    {where}
     {orderby} 
     {limits};""".replace(
         "\n", ""
     )
     len_query_string = f"SELECT count(*) FROM {table_name};"
+
+    # print(query_string)
 
     return query_string, len_query_string
 
@@ -162,3 +178,31 @@ def get_tickets_info(
         return filter_and_rename_df(df, mode="multi"), records
     else:
         return filter_and_rename_df(df, mode="single").to_dict("records")[0]
+
+
+def get_ticket_history(ticket_uuid):
+    conn = db_connection.get_conn()
+
+    query_string = f"""select * from (select * from tickets_review where uuid = '{ticket_uuid}') tr
+    left join (select id as rev_id, first_name, middle_name, last_name, position_id from users) u on u.rev_id = tr.reviewer_id
+    left join (select id as pos_id, position_name from positions) po on u.position_id = po.pos_id
+    left join (select id as stat_id, status_name, step_id from status_list) s on s.stat_id = tr.assigned_status
+    order by updated_at asc;"""
+
+    df = pd.read_sql_query(query_string, conn)
+    df["created_at"] = df["created_at"].dt.strftime("%d.%m.%Y %H:%M:%S")
+    df["updated_at"] = df["updated_at"].dt.strftime("%d.%m.%Y %H:%M:%S")
+    df["FIO"] = (
+        df["last_name"]
+        + " "
+        + df["first_name"].str.slice(0, 1)
+        + ". "
+        + df["middle_name"].str.slice(0, 1)
+        + ". "
+    )
+
+    created = df[df['step_id'] == 0].to_dict('records')[0] if len(df[df['step_id'] == 0]) > 0 else pd.DataFrame()
+    in_work = df[df['step_id'] == 1].to_dict('records') if len(df[df['step_id'] == 1]) > 0 else pd.DataFrame()
+    ended = df[df['step_id'] == 2].to_dict('records')[0] if len(df[df['step_id'] == 2]) > 0 else pd.DataFrame()
+
+    return created, in_work, ended

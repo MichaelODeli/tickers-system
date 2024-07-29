@@ -20,6 +20,7 @@ from controllers import (
     tickets_controllers,
     db_connection,
     notifications,
+    modal_render
 )
 from templates.templates_user_roles import user_has_no_access_template
 from assets import datatable_style
@@ -65,7 +66,7 @@ def layout(l="y", ticket_uuid=None, **kwargs):
                 dmc.Modal(
                     title=html.H4("Просмотр отчета"),
                     id="ticket-read-modal",
-                    zIndex=100,
+                    zIndex=201,
                     size="75%",
                     trapFocus=False,
                 ),
@@ -189,12 +190,13 @@ def update_table(page_current, query_filter, avaliablity):
                     limit=1,
                     offset=0,
                     ticket_uuid=GLOBAL_TICKET_UUID,
+                    query_filter='by_uuid'
                 )
             except pd.errors.DatabaseError:
                 return [no_update] * 3 + [notifications.db_error()]
 
         page_count = math.ceil(records / PAGE_SIZE) 
-
+        
         return (
             df.to_dict("records"),
             [{"name": i, "id": i} for i in df.columns],
@@ -217,6 +219,8 @@ def update_table(page_current, query_filter, avaliablity):
     # prevent_initial_call=True,
 )
 def view_ticket(active_cell, href, opened):
+    global USERDATA
+
     if active_cell is not None or "ticket_uuid" in href:
         if active_cell is not None:
             t_uuid = active_cell["row_id"]
@@ -225,207 +229,10 @@ def view_ticket(active_cell, href, opened):
             t_uuid = parse_qs(parsed_url.query)["ticket_uuid"][0]
 
         try:
-            ticket_details = tickets_controllers.get_tickets_info(
-                return_df=False,
-                ticket_uuid=t_uuid,
-                mode="single",
-                user_id=USERDATA["user_id"],
-            )
-
-            ticket_table = dbc.Table(
-                [
-                    html.Tbody(
-                        [
-                            html.Tr(
-                                [
-                                    html.Td(key, className="p-2 fw-bold"),
-                                    html.Td(ticket_details[key], className="p-2"),
-                                ],
-                            )
-                            for key in list(ticket_details.keys())
-                        ]
-                    )
-                ],
-                class_name="shadow-none w-content",
-                bordered=True,
-                hover=True,
-            )
-
-            modal_content = dmc.Stack(
-                [
-                    dmc.Accordion(
-                        id="review-ticket_accordion",
-                        disableChevronRotation=True,
-                        value=[
-                            "ticket_table",
-                        ],
-                        variant="separated",
-                        multiple=True,
-                        children=[
-                            dmc.AccordionItem(
-                                [
-                                    dmc.AccordionControl(
-                                        "Информация о тикете",
-                                        icon=DashIconify(
-                                            icon="material-symbols:info-outline",
-                                            color=dmc.DEFAULT_THEME["colors"]["blue"][
-                                                6
-                                            ],
-                                            width=30,
-                                        ),
-                                    ),
-                                    dmc.AccordionPanel(ticket_table),
-                                ],
-                                value="ticket_table",
-                            ),
-                            dmc.AccordionItem(
-                                [
-                                    dmc.AccordionControl(
-                                        "История рассмотрения тикета",
-                                        icon=DashIconify(
-                                            icon="material-symbols:history",
-                                            color=dmc.DEFAULT_THEME["colors"]["red"][6],
-                                            width=30,
-                                        ),
-                                    ),
-                                    dmc.AccordionPanel(
-                                        "Загрузка...", id="review-ticket_history"
-                                    ),
-                                ],
-                                value="ticket_history",
-                            ),
-                            dmc.AccordionItem(
-                                [
-                                    dmc.AccordionControl(
-                                        "Ответ на тикет",
-                                        icon=DashIconify(
-                                            icon="ic:outline-question-answer",
-                                            color=dmc.DEFAULT_THEME["colors"]["green"][
-                                                6
-                                            ],
-                                            width=30,
-                                        ),
-                                    ),
-                                    dmc.AccordionPanel(
-                                        "Загрузка...", id="review-ticket_answer"
-                                    ),
-                                ],
-                                value="ticket_answer",
-                            ),
-                        ],
-                    )
-                ],
-                className="w-100",
-            )
+            modal_content = modal_render.get_modal_content_by_uuid(ticket_uuid=t_uuid, userdata=USERDATA)
 
             return modal_content, not opened
         except Exception:
             return "Ошибка получения данных. Попробуйте позднее", not opened
     else:
         return [no_update] * 2
-
-
-@callback(
-    Output("review-ticket_history", "children"),
-    Output("review-ticket_answer", "children"),
-    Input("review-ticket_accordion", "value"),
-    prevent_initial_call=True,
-)
-def output_fields(accordion_value):
-    history_data = no_update
-    answer_data = no_update
-
-    if "ticket_history" in accordion_value:
-        history_data = dmc.Timeline(
-            active=2,
-            bulletSize=15,
-            lineWidth=2,
-            children=[
-                dmc.TimelineItem(
-                    title="Получен",
-                    children=[
-                        dmc.Text(
-                            ["01/01/2024 08:00"],
-                            c="dimmed",
-                            size="sm",
-                        ),
-                    ],
-                ),
-                dmc.TimelineItem(
-                    title="На рассмотрении",
-                    children=dmc.Stack(
-                        [
-                            dmc.Text(
-                                "02/01/2024 08:00",
-                                c="dimmed",
-                                size="sm",
-                            ),
-                            dmc.Space(h="xs"),
-                            dmc.Text(
-                                "Ответ: {ответ}",
-                                c="dimmed",
-                                size="sm",
-                            ),
-                            dmc.Text(
-                                "Исполнитель: {должность} {ФИО}",
-                                c="dimmed",
-                                size="sm",
-                            ),
-                        ],
-                        gap=0,
-                    ),
-                ),
-                dmc.TimelineItem(
-                    title="В работе",
-                    children=dmc.Stack(
-                        [
-                            dmc.Text(
-                                "03/01/2024 08:00",
-                                c="dimmed",
-                                size="sm",
-                            ),
-                            dmc.Space(h="xs"),
-                            dmc.Text(
-                                "Ответ: {ответ}",
-                                c="dimmed",
-                                size="sm",
-                            ),
-                            dmc.Text(
-                                "Исполнитель: {должность} {ФИО}",
-                                c="dimmed",
-                                size="sm",
-                            ),
-                        ],
-                        gap=0,
-                    ),
-                ),
-                dmc.TimelineItem(
-                    title="Завершен",
-                    lineVariant="dashed",
-                ),
-            ],
-        )
-    if "ticket_answer" in accordion_value:
-        answer_data = dmc.Stack(
-            [
-                dmc.Select(
-                    label="Присвойте статус отчету",
-                    data=users_controllers.get_status_list(),
-                    searchable=True,
-                    w=300,
-                    rightSection=DashIconify(icon="radix-icons:chevron-down"),
-                    placeholder="Статус",
-                    id="ticket-status-select",
-                ),
-                dmc.Textarea(
-                    label="Введите ответ",
-                    placeholder="До 1024 символов",
-                    w=500,
-                    autosize=True,
-                    minRows=3,
-                    maxRows=7,
-                ),
-                dmc.Button("Отправить"),
-            ]
-        )
-    return history_data, answer_data

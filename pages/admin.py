@@ -7,7 +7,7 @@ from templates.templates_user_roles import user_has_no_access_template
 
 register_page(
     __name__,
-    path="/analysis",
+    path="/admin",
 )
 
 
@@ -20,7 +20,7 @@ def layout(l='y'):
     username = current_user.get_id()
     userdata = users_controllers.get_user_info(username=username)
     # проверка доступа к просмотру тикетов
-    if not userdata['can_view_analytics_data']:
+    if not userdata['admin_access']:
         return user_has_no_access_template()
     else:
         return 'Скоро...'

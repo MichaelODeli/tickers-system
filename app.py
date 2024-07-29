@@ -255,5 +255,4 @@ if __name__ == "__main__":
         app.run_server(debug=True, host="0.0.0.0", port=82)
     else:
         from waitress import serve
-
         serve(app.server, host="0.0.0.0", port=82)

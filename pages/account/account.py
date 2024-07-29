@@ -230,7 +230,7 @@ def test_controller_for_accordion(value):
     if value == None:
         return [True, no_update] * 3
     elif "sents" in value:
-        df = tickets_controllers.get_tickets_info(user_id=USERDATA["user_id"])
+        df = tickets_controllers.get_tickets_info(mode = 'account_last5sended', user_id=USERDATA["user_id"])
 
         return [
             False,

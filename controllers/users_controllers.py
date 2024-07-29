@@ -60,3 +60,14 @@ def get_problems_list():
         column_names = [col[0] for col in desc]
         data = [dict(zip(column_names, row)) for row in cursor.fetchall()]
     return data
+
+def get_status_list():
+    conn = db_connection.get_conn()
+    with conn.cursor() as cursor:
+        cursor.execute(
+            "SELECT id::text as value, status_name as label FROM status_list;"
+        )
+        desc = cursor.description
+        column_names = [col[0] for col in desc]
+        data = [dict(zip(column_names, row)) for row in cursor.fetchall()]
+    return data

@@ -1,9 +1,9 @@
-from dash import html, register_page, callback, Input, Output, no_update, dash_table
+from dash import html, register_page, callback, Input, Output, no_update, dash_table, State
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 from flask_login import current_user
 from dash_iconify import DashIconify
-from controllers import db_connection, users_controllers, tickets_controllers
+from controllers import db_connection, users_controllers, tickets_controllers, modal_render
 from assets import datatable_style
 
 register_page(
@@ -14,7 +14,7 @@ register_page(
 USERDATA = ""
 
 
-def layout(l="y"):
+def layout(l="y", **kwargs):
     global USERDATA
 
     if not current_user.is_authenticated or l == "y" or not db_connection.test_conn():
@@ -25,9 +25,17 @@ def layout(l="y"):
 
         return dbc.Row(
             [
+                dmc.Modal(
+                    title=html.H4("Просмотр отчета"),
+                    id="ticket-read-modal-account",
+                    zIndex=201,
+                    size="75%",
+                    trapFocus=False,
+                    className='adaptive-modal'
+                ),
                 dbc.Col(className="adaptive-hide", width=1),
                 dbc.Col(
-                    dmc.Card(
+                    children=dmc.Card(
                         [
                             dmc.Stack(
                                 [
@@ -99,7 +107,7 @@ def layout(l="y"):
                         withBorder=True,
                     ),
                     width=3,
-                    class_name="m-1 p-1",
+                    class_name="m-1 p-1 adaptive-width",
                 ),
                 dbc.Col(
                     dmc.Accordion(
@@ -131,13 +139,7 @@ def layout(l="y"):
                                         ),
                                     ),
                                     dmc.AccordionPanel(
-                                        dmc.Stack(
-                                            gap="md",
-                                            children=[
-                                                dmc.Skeleton(h=8, radius="xl"),
-                                            ]
-                                            * 4,
-                                        ),
+                                        
                                         id="account-tickets-sents_data",
                                     ),
                                 ],
@@ -146,7 +148,35 @@ def layout(l="y"):
                             dmc.AccordionItem(
                                 [
                                     dmc.AccordionControl(
-                                        disabled=True,
+                                        children=dmc.Text(
+                                            "Обращения в работе",
+                                            className="p-1",
+                                        ),
+                                        icon=dmc.Indicator(
+                                            DashIconify(
+                                                icon="material-symbols:info-outline",
+                                                color=dmc.DEFAULT_THEME["colors"][
+                                                    "blue"
+                                                ][6],
+                                                width=30,
+                                            ),
+                                            inline=True,
+                                            color="red",
+                                            size=10,
+                                            processing=True,
+                                            id="account-tickets-awaiting_indicator",
+                                            disabled=True,
+                                        ),
+                                    ),
+                                    dmc.AccordionPanel(
+                                        id="account-tickets-awaiting_data",
+                                    ),
+                                ],
+                                value="account-tickets-awaiting",
+                            ),
+                            dmc.AccordionItem(
+                                [
+                                    dmc.AccordionControl(
                                         children=dmc.Text(
                                             "Завершенные обращения",
                                             className="p-1",
@@ -173,44 +203,15 @@ def layout(l="y"):
                                 ],
                                 value="account-tickets-ended",
                             ),
-                            dmc.AccordionItem(
-                                [
-                                    dmc.AccordionControl(
-                                        disabled=True,
-                                        children=dmc.Text(
-                                            "Обращения, ожидающие уточнения",
-                                            className="p-1",
-                                        ),
-                                        icon=dmc.Indicator(
-                                            DashIconify(
-                                                icon="material-symbols:info-outline",
-                                                color=dmc.DEFAULT_THEME["colors"][
-                                                    "blue"
-                                                ][6],
-                                                width=30,
-                                            ),
-                                            inline=True,
-                                            color="red",
-                                            size=10,
-                                            processing=True,
-                                            id="account-tickets-awaiting_indicator",
-                                            disabled=True,
-                                        ),
-                                    ),
-                                    dmc.AccordionPanel(
-                                        id="account-tickets-awaiting_data",
-                                    ),
-                                ],
-                                value="account-tickets-awaiting",
-                            ),
+                            
                         ],
                     ),
-                    # style={"background-color": "cyan"},
-                    class_name="m-1 p-1",
+                    class_name="m-1 p-1 adaptive-width",
                 ),
                 dbc.Col(className="adaptive-hide", width=1),
             ],
             style={"paddingTop": "6dvh"},
+            class_name='adaptive-block'
         )
 
 
@@ -222,36 +223,67 @@ def layout(l="y"):
     Output("account-tickets-awaiting_indicator", "disabled"),
     Output("account-tickets-awaiting_data", "children"),
     Input("account-accordion-data", "value"),
-    prevent_initial_call=True,
+    # prevent_initial_call=True,
 )
 def test_controller_for_accordion(value):
     global USERDATA
 
-    if value == None:
-        return [True, no_update] * 3
-    elif "sents" in value:
-        df = tickets_controllers.get_tickets_info(user_id=USERDATA["user_id"])
+    sents, ended, awaiting = [False]*3
+    noupdate_return = [True, no_update]
 
-        return [
-            False,
-            dmc.Stack(
-                [
-                    dmc.Text("Отображаются 5 последних отправленных обращений"),
-                    html.Div(
-                        dash_table.DataTable(
-                            id="tickets-datatable-user",
-                            css=datatable_style.datatable_list,
-                            hidden_columns=["id", "uuid"],
-                            data=df.to_dict("records"),
-                            columns=[{"name": i, "id": i} for i in sorted(df.columns)],
-                            style_data_conditional=datatable_style.styles_data_conditional,
-                        ),
-                        className="table table-hover shadow-none w-100",
+    if value == None: return noupdate_return * 3
+
+    if "sents" in value:
+        df, records = tickets_controllers.get_tickets_info(mode='multi', query_filter = 'account_last5sended', user_id=USERDATA["user_id"], return_df=True,)
+        sents = True
+    if 'ended' in value:
+        df, records = tickets_controllers.get_tickets_info(mode='multi', query_filter = 'account_last5ended', user_id=USERDATA["user_id"], return_df=True,)
+        ended = True
+    if 'awaiting' in value:
+        df, records = tickets_controllers.get_tickets_info(mode='multi', query_filter = 'account_last5awaiting', user_id=USERDATA["user_id"], return_df=True,)
+        awaiting = True
+
+    return_list = [
+        False,
+        dmc.Stack(
+            [
+                dmc.Text("Отображаются 5 последних обращений"),
+                html.Div(
+                    dash_table.DataTable(
+                        id="tickets-datatable-user",
+                        css=datatable_style.datatable_list,
+                        hidden_columns=["id", "uuid"],
+                        data=df.to_dict("records"),
+                        columns=[{"name": i, "id": i} for i in sorted(df.columns)],
+                        style_data_conditional=datatable_style.styles_data_conditional,
                     ),
-                ],
-                w="100%",
-            ),
-        ] + [
-            True,
-            no_update,
-        ] * 2
+                    className="table table-hover shadow-none w-100",
+                ),
+            ],
+            w="100%",
+        )
+    ]
+
+    return (return_list if sents else noupdate_return) + (return_list if ended else noupdate_return) +  (return_list if awaiting else noupdate_return)
+    
+@callback(
+    Output("ticket-read-modal-account", "children"),
+    Output("ticket-read-modal-account", "opened"),
+    Input("tickets-datatable-user", "active_cell"),
+    State("ticket-read-modal-account", "opened"),
+    # running=[
+    #     (Output("loading-overlay-read", "visible"), True, False),
+    # ],
+    # prevent_initial_call=True,
+)
+def view_ticket(active_cell, opened):
+    if active_cell is not None:
+        t_uuid = active_cell["row_id"]
+        try:
+            modal_content = modal_render.get_modal_content_by_uuid(ticket_uuid=t_uuid, userdata=USERDATA, source='account')
+
+            return modal_content, not opened
+        except Exception:
+            return "Ошибка получения данных. Попробуйте позднее", not opened
+    else:
+        return [no_update] * 2

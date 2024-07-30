@@ -10,7 +10,7 @@ register_page(
 )
 
 
-def layout():
+def layout(**kwargs):
     if not current_user.is_authenticated:
         return html.Div()
     else:
@@ -19,14 +19,15 @@ def layout():
 
         return dbc.Row(
             [
-                dbc.Col(className="adaptive-hide", width=3),
+                dbc.Col(className="adaptive-hide adaptive-width", width=3),
                 dbc.Col(
                     [
                         dmc.Card(
+                            p='xs',
                             children=[
                                 dmc.Text("Создать обращение", fw=500),
                                 dmc.Text(
-                                    "Перейдите, чтобы сообщить о возникшей проблеме",
+                                    "Перейдите, чтобы сообщить о проблеме",
                                     size="sm",
                                     c="dimmed",
                                 ),
@@ -42,20 +43,23 @@ def layout():
                                     className="a-no-decoration",
                                 ),
                             ],
-                            w="max-content",
+                            # w="max-content",
+                            miw="100%",
                             m="auto",
                         )
                     ],
                     md=3,
                     xs=6,
+                    class_name='adaptive-width'
                 ),
                 dbc.Col(
                     [
                         dmc.Card(
+                            p='xs',
                             children=[
                                 dmc.Text("Просмотр обращений", fw=500),
                                 dmc.Text(
-                                    "Перейдите для просмотра имеющихся обращений",
+                                    "Перейдите для просмотра обращений",
                                     size="sm",
                                     c="dimmed",
                                 ),
@@ -70,14 +74,17 @@ def layout():
                                     className="a-no-decoration",
                                 ),
                             ],
-                            w="max-content",
+                            miw="100%",
+                            # w="max-content",
                             m="auto",
                         )
                     ],
                     md=3,
-                    xs=6
+                    xs=6,
+                    class_name='adaptive-width'
                 ) if userdata['can_read_reports'] else None,
                 dbc.Col(className="adaptive-hide", width=3),
             ],
             style={"paddingTop": "33dvh"},
+            class_name='adaptive-block'
         )

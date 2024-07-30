@@ -14,7 +14,7 @@ from uuid import uuid4
 from controllers import db_connection
 from flask_login import current_user
 import re
-from controllers import users_controllers
+from controllers import users_controllers, tickets_controllers
 from templates.templates_user_roles import user_has_no_access_template
 
 register_page(
@@ -24,7 +24,7 @@ register_page(
 
 USERDATA = ''
 
-def layout(l='y'):
+def layout(l='y', **kwargs):
 
     if not current_user.is_authenticated or l=='y':
         return html.Div()
@@ -52,7 +52,8 @@ def layout(l='y'):
                                         icon="ic:round-alternate-email"
                                     ),
                                     value=USERDATA['email'],
-                                    disabled=True
+                                    disabled=True,
+                                    maw='95dvw',
                                 ),
                                 dmc.Select(
                                     label="Срочность",
@@ -82,6 +83,7 @@ def layout(l='y'):
                                     "Что вы делали до возникновения ошибки? "
                                     "При каких обстоятельствах она возникла?",
                                     w=500,
+                                    maw='95dvw',
                                     autosize=True,
                                     minRows=3,
                                     maxRows=7,
@@ -168,36 +170,11 @@ def send_ticket(
                 no_update,
             )
         else:
-            try:
-                global USERDATA
+            global USERDATA
 
-                # ticket_uuid = uuid7str()
-                ticket_uuid = str(uuid4())
-                conn = db_connection.get_conn()
-                with conn.cursor() as cursor:
-                    cursor.execute(
-                        'INSERT INTO "tickets" '
-                        '("uuid", "reporter_id", "priority_id", "problem_id", "text") '
-                        'values (%(uuid)s, %(reporter_id)s, %(priority_id)s, %(problem_id)s, %(text)s);',
-                        {
-                            "uuid": ticket_uuid,
-                            "reporter_id": USERDATA['user_id'],
-                            "priority_id": int(priority),
-                            "problem_id": int(problem),
-                            "text": text
-                        },
-                    )
-                conn.commit()
-                conn.close()
-                return "", ticket_uuid, not opened
-            except Exception:
-                return (
-                    "Ошибка отправки. Повторите позднее.",
-                    no_update,
-                    no_update,
-                )
+            return tickets_controllers.send_ticket(USERDATA, priority, problem, text, opened)
     else:
-        return no_update
+        return [no_update] * 3
 
 
 @callback(

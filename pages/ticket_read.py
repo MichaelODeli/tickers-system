@@ -7,17 +7,27 @@ from dash import (
     State,
     no_update,
     dash_table,
+    dcc,
 )
 import dash_mantine_components as dmc
 import dash_bootstrap_components as dbc
 import pandas as pd
-from controllers import db_connection
 import math
 import warnings
 from flask_login import current_user
-from controllers import users_controllers, tickets_controllers
+from controllers import (
+    users_controllers,
+    tickets_controllers,
+    db_connection,
+    notifications,
+    modal_render,
+)
+from flask import request as flask_request
 from templates.templates_user_roles import user_has_no_access_template
 from assets import datatable_style
+from dash_iconify import DashIconify
+from urllib.parse import urlparse
+from urllib.parse import parse_qs
 
 warnings.filterwarnings("ignore")
 
@@ -25,37 +35,78 @@ register_page(
     __name__,
     path="/tickets/read",
 )
-PAGE_SIZE = 18
+PAGE_SIZE = 17
+USERDATA = ""
+GLOBAL_TICKET_UUID = None
 
 
 # @login_required
-def layout(l="y"):
+def layout(l="y", ticket_uuid=None, **kwargs):
     global PAGE_SIZE
+    global USERDATA
+    global GLOBAL_TICKET_UUID
+    GLOBAL_TICKET_UUID = ticket_uuid
 
     if not current_user.is_authenticated or l == "y":
         return html.Div()
 
     username = current_user.get_id()
-    userdata = users_controllers.get_user_info(username=username)
+    USERDATA = users_controllers.get_user_info(username=username)
     # проверка доступа к просмотру тикетов
-    if not userdata["can_read_reports"]:
+    if not USERDATA["can_read_reports"]:
         return user_has_no_access_template()
     else:
+        filter_values = [
+            ["Все", "all"],
+            ["Неотвеченные", "unanswered"],
+            ["В работе", "in_work"],
+            ["Завершенные", "ended"],
+        ]
+
         return dbc.Row(
             [
                 dmc.Modal(
-                    title="Информация об отчете",
+                    title=html.H4("Просмотр отчета"),
                     id="ticket-read-modal",
-                    zIndex=10000,
-                    size="55%",
+                    zIndex=201,
+                    size="75%",
+                    trapFocus=False,
+                    className="adaptive-modal",
                 ),
                 dbc.Col(className="adaptive-hide", width=2),
                 dbc.Col(
                     [
                         html.Div(id="notifications-container"),
                         dmc.Stack(
-                            [
-                                html.H3("Просмотр обращений", id="dummy"),
+                            gap="xs",
+                            children=[
+                                html.H3(
+                                    (
+                                        "Просмотр обращений"
+                                        if ticket_uuid == None
+                                        else "Просмотр выбранного обращения"
+                                    ),
+                                    id="dummy",
+                                ),
+                                dmc.RadioGroup(
+                                    children=dmc.Group(
+                                        [
+                                            dmc.Radio(l, value=k)
+                                            for l, k in filter_values
+                                        ],
+                                        my=10,
+                                    ),
+                                    id="radiogroup-filter",
+                                    value=(
+                                        filter
+                                        if any(filter in sl for sl in filter_values)
+                                        else "all"
+                                    ),
+                                    label="Фильтрация отчетов",
+                                    size="sm",
+                                    mb=10,
+                                    display="none" if ticket_uuid != None else "block",
+                                ),
                                 html.Div(
                                     [
                                         dmc.LoadingOverlay(
@@ -79,7 +130,20 @@ def layout(l="y"):
                                     className="table table-hover shadow-none",
                                     id="output-read",
                                 ),
-                            ]
+                                html.A(
+                                    dmc.Button(
+                                        "Вернуться к просмотру всех обращений",
+                                        radius="md",
+                                    ),
+                                    href="/tickets/read?l=n",
+                                    className="a-no-decoration",
+                                    style=(
+                                        {"display": "none"}
+                                        if ticket_uuid is None
+                                        else {"display": "block"}
+                                    ),
+                                ),
+                            ],
                         ),
                     ]
                 ),
@@ -93,33 +157,54 @@ def layout(l="y"):
     Output("tickets-datatable", "data"),
     Output("tickets-datatable", "columns"),
     Output("tickets-datatable", "page_count"),
+    Output("notifications-container", "children"),
     Input("tickets-datatable", "page_current"),
-    Input("tickets-datatable", "page_size"),
-    Input("loading-overlay-read", "visible"),
+    Input("radiogroup-filter", "value"),
     State("server-avaliablity", "data"),
+    running=[
+        (Output("loading-overlay-read", "visible"), True, False),
+    ],
 )
-def update_table(page_current, page_size, visible, avaliablity):
+def update_table(page_current, query_filter, avaliablity):
     global PAGE_SIZE
+    global GLOBAL_TICKET_UUID
+    global USERDATA
     page_current = 0 if page_current is None else page_current
 
     if avaliablity:
-        conn = db_connection.get_conn()
-        records = pd.read_sql("select count(*) from tickets;", conn)["count"].tolist()[
-            0
-        ]
 
         start_record = page_current * PAGE_SIZE
         # end_record = (page_current + 1) * PAGE_SIZE
+
+        if GLOBAL_TICKET_UUID == None:
+            df, records = tickets_controllers.get_tickets_info(
+                mode="multi",
+                return_df=True,
+                limit=PAGE_SIZE,
+                offset=start_record,
+                query_filter=query_filter,
+                user_id=USERDATA["user_id"],
+            )
+        else:
+            try:
+                df, records = tickets_controllers.get_tickets_info(
+                    mode="single",
+                    return_df=True,
+                    limit=1,
+                    offset=0,
+                    ticket_uuid=GLOBAL_TICKET_UUID,
+                    query_filter="by_uuid",
+                )
+            except pd.errors.DatabaseError:
+                return [no_update] * 3 + [notifications.db_error()]
+
         page_count = math.ceil(records / PAGE_SIZE)
-
-        df = tickets_controllers.get_tickets_info(limit=PAGE_SIZE, offset=start_record)
-
-        conn.close()
 
         return (
             df.to_dict("records"),
             [{"name": i, "id": i} for i in df.columns],
             page_count,
+            no_update,
         )
     else:
         return [no_update] * 4
@@ -128,48 +213,74 @@ def update_table(page_current, page_size, visible, avaliablity):
 @callback(
     Output("ticket-read-modal", "children"),
     Output("ticket-read-modal", "opened"),
-    Output("notifications-container", "children"),
     Input("tickets-datatable", "active_cell"),
+    Input("url", "href"),
     State("ticket-read-modal", "opened"),
     running=[
         (Output("loading-overlay-read", "visible"), True, False),
     ],
+    # prevent_initial_call=True,
+)
+def view_ticket(active_cell, href, opened):
+    global USERDATA
+
+    if active_cell is not None or "ticket_uuid" in href:
+        if active_cell is not None:
+            t_uuid = active_cell["row_id"]
+        else:
+            parsed_url = urlparse(href)
+            t_uuid = parse_qs(parsed_url.query)["ticket_uuid"][0]
+
+        try:
+            modal_content = modal_render.get_modal_content_by_uuid(
+                ticket_uuid=t_uuid, userdata=USERDATA
+            )
+
+            return modal_content, not opened
+        except Exception:
+            return "Ошибка получения данных. Попробуйте позднее", not opened
+    else:
+        return [no_update] * 2
+
+
+@callback(
+    Output("ticket-answer-status", "children"),
+    Output("ticket-answer-status", "color"),
+    Output("ticket-answer-send", "n_clicks"),
+    # Output("url", "href"),
+    Input("ticket-answer-send", "n_clicks"),
+    State("tickets-datatable", "active_cell"),
+    State("ticket-answer", "value"),
+    State("ticket-status-select", "value"),
+    State("url", "pathname"),
+    State("url", "href"),
     prevent_initial_call=True,
 )
-def view_ticket(active_cell, opened):
-    if active_cell is not None:
-        # conn = db_connection.get_conn()
-        # df = pd.read_sql(
-        #     f"SELECT * FROM tickets WHERE uuid = '{active_cell['row_id']}';",
-        #     conn,
-        # )
-        # conn.close()
+def send_ticket_answer(n_clicks, active_cell, ans_text, status, pathname, href):
 
-        # ticket_details = df.to_dict("records")[0]
+    global USERDATA
 
-        ticket_details = tickets_controllers.get_tickets_info(
-            return_df=False, ticket_uuid=active_cell["row_id"]
+    if (
+        active_cell is not None and n_clicks > 0 and USERDATA["can_answer_reports"]
+    ) or (n_clicks > 0 and "ticket_uuid" in href and USERDATA["can_answer_reports"]):
+        if active_cell is not None:
+            t_uuid = active_cell["row_id"]
+        else:
+            parsed_url = urlparse(href)
+            t_uuid = parse_qs(parsed_url.query)["ticket_uuid"][0]
+
+        if len(ans_text) > 1024 or status == None or status == "":
+            return "Не все поля заполнены правильно. Лимит символов - 1024.", "red", 0
+
+        report_link = (
+            "http://"
+            + flask_request.headers.get("Host")
+            + pathname
+            + f"?l=n&ticket_uuid={t_uuid}"
         )
 
-        modal_content = dbc.Table(
-            [
-                html.Tbody(
-                    [
-                        html.Tr(
-                            [
-                                html.Td(key, className="p-2 fw-bold"),
-                                html.Td(ticket_details[key], className="p-2"),
-                            ],
-                        )
-                        for key in list(ticket_details.keys())
-                    ]
-                )
-            ],
-            class_name="shadow-none w-content",
-            bordered=True,
-            hover=True,
+        return tickets_controllers.send_ticket_answer(
+            ans_text, status, report_link, t_uuid, userdata=USERDATA
         )
-
-        return modal_content, not opened, no_update
     else:
-        return [no_update] * 3
+        return no_update, no_update, 0

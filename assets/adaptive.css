@@ -2,5 +2,24 @@
     .adaptive-hide {
       display: none !important;
     }
+    .adaptive-block {
+      display: block !important;
+    }
+    .adaptive-width {
+      width: 100% !important;
+    }
+    .adaptive-modal {
+      --modal-size: 100% !important;
+    }
+    .adaptive-modal > .mantine-Modal-inner{
+      padding: 0 !important;
+    }
+    .adaptive-modal > .mantine-Modal-inner > .mantine-Modal-content {
+      min-height: 100dvh !important;
+    }
   }
 
+.dash-table-container, .auto-overflow {
+  max-width: 95dvw !important;
+  overflow-y: auto !important;
+}

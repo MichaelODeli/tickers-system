@@ -8,7 +8,7 @@ register_page(
 )
 
 
-def layout():
+def layout(**kwargs):
     return (
         dmc.Stack(
             align="center",

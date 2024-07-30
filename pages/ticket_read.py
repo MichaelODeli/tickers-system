@@ -20,8 +20,9 @@ from controllers import (
     tickets_controllers,
     db_connection,
     notifications,
-    modal_render
+    modal_render,
 )
+from flask import request as flask_request
 from templates.templates_user_roles import user_has_no_access_template
 from assets import datatable_style
 from dash_iconify import DashIconify
@@ -58,7 +59,8 @@ def layout(l="y", ticket_uuid=None, **kwargs):
         filter_values = [
             ["Все", "all"],
             ["Неотвеченные", "unanswered"],
-            # ["Принятые Вами в работу", "this_reviewer"],
+            ["В работе", "in_work"],
+            ["Завершенные", "ended"],
         ]
 
         return dbc.Row(
@@ -69,6 +71,7 @@ def layout(l="y", ticket_uuid=None, **kwargs):
                     zIndex=201,
                     size="75%",
                     trapFocus=False,
+                    className="adaptive-modal",
                 ),
                 dbc.Col(className="adaptive-hide", width=2),
                 dbc.Col(
@@ -190,13 +193,13 @@ def update_table(page_current, query_filter, avaliablity):
                     limit=1,
                     offset=0,
                     ticket_uuid=GLOBAL_TICKET_UUID,
-                    query_filter='by_uuid'
+                    query_filter="by_uuid",
                 )
             except pd.errors.DatabaseError:
                 return [no_update] * 3 + [notifications.db_error()]
 
-        page_count = math.ceil(records / PAGE_SIZE) 
-        
+        page_count = math.ceil(records / PAGE_SIZE)
+
         return (
             df.to_dict("records"),
             [{"name": i, "id": i} for i in df.columns],
@@ -229,10 +232,55 @@ def view_ticket(active_cell, href, opened):
             t_uuid = parse_qs(parsed_url.query)["ticket_uuid"][0]
 
         try:
-            modal_content = modal_render.get_modal_content_by_uuid(ticket_uuid=t_uuid, userdata=USERDATA)
+            modal_content = modal_render.get_modal_content_by_uuid(
+                ticket_uuid=t_uuid, userdata=USERDATA
+            )
 
             return modal_content, not opened
         except Exception:
             return "Ошибка получения данных. Попробуйте позднее", not opened
     else:
         return [no_update] * 2
+
+
+@callback(
+    Output("ticket-answer-status", "children"),
+    Output("ticket-answer-status", "color"),
+    Output("ticket-answer-send", "n_clicks"),
+    # Output("url", "href"),
+    Input("ticket-answer-send", "n_clicks"),
+    State("tickets-datatable", "active_cell"),
+    State("ticket-answer", "value"),
+    State("ticket-status-select", "value"),
+    State("url", "pathname"),
+    State("url", "href"),
+    prevent_initial_call=True,
+)
+def send_ticket_answer(n_clicks, active_cell, ans_text, status, pathname, href):
+
+    global USERDATA
+
+    if (
+        active_cell is not None and n_clicks > 0 and USERDATA["can_answer_reports"]
+    ) or (n_clicks > 0 and "ticket_uuid" in href and USERDATA["can_answer_reports"]):
+        if active_cell is not None:
+            t_uuid = active_cell["row_id"]
+        else:
+            parsed_url = urlparse(href)
+            t_uuid = parse_qs(parsed_url.query)["ticket_uuid"][0]
+
+        if len(ans_text) > 1024 or status == None or status == "":
+            return "Не все поля заполнены правильно. Лимит символов - 1024.", "red", 0
+
+        report_link = (
+            "http://"
+            + flask_request.headers.get("Host")
+            + pathname
+            + f"?l=n&ticket_uuid={t_uuid}"
+        )
+
+        return tickets_controllers.send_ticket_answer(
+            ans_text, status, report_link, t_uuid, userdata=USERDATA
+        )
+    else:
+        return no_update, no_update, 0

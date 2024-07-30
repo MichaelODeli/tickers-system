@@ -104,8 +104,8 @@ app.layout = dmc.MantineProvider(
                     loaderProps={"size": "lg"},
                 ),
                 dcc.Store(id="server-avaliablity"),
-                # dcc.Location(id="url", refresh=False),
-                dcc.Location(id="url", refresh=True),
+                dcc.Location(id="url", refresh=False),
+                # dcc.Location(id="url", refresh=True),
                 dcc.Location(id="redirect", refresh=True),
                 html.Div(id="user-status-div"),
             ],
@@ -138,8 +138,6 @@ app.layout = dmc.MantineProvider(
     ],
 )
 def server_blocker(style):
-    # print(f'server_blocker toggle {db_connection.test_conn()}')
-
     if db_connection.test_conn():
         return True, no_update
     else:
@@ -160,13 +158,10 @@ def server_blocker(style):
     Input("url", "pathname"),
 )
 def navbar_drawer(pathname):
-    # print(f'navbar toggle {pathname}')
-
     return [
         (
             dbc.DropdownMenu(
                 children=[
-                    # dbc.DropdownMenuItem("More pages", header=True),
                     dbc.DropdownMenuItem("Личный кабинет", href="/account?l=n"),
                     dbc.DropdownMenuItem("Выйти", href="/logout"),
                 ],

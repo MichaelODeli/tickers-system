@@ -14,7 +14,7 @@ register_page(
 USERDATA = ""
 
 
-def layout(l="y"):
+def layout(l="y", **kwargs):
     global USERDATA
 
     if not current_user.is_authenticated or l == "y" or not db_connection.test_conn():
@@ -31,10 +31,11 @@ def layout(l="y"):
                     zIndex=201,
                     size="75%",
                     trapFocus=False,
+                    className='adaptive-modal'
                 ),
                 dbc.Col(className="adaptive-hide", width=1),
                 dbc.Col(
-                    dmc.Card(
+                    children=dmc.Card(
                         [
                             dmc.Stack(
                                 [
@@ -106,7 +107,7 @@ def layout(l="y"):
                         withBorder=True,
                     ),
                     width=3,
-                    class_name="m-1 p-1",
+                    class_name="m-1 p-1 adaptive-width",
                 ),
                 dbc.Col(
                     dmc.Accordion(
@@ -205,11 +206,12 @@ def layout(l="y"):
                             
                         ],
                     ),
-                    class_name="m-1 p-1",
+                    class_name="m-1 p-1 adaptive-width",
                 ),
                 dbc.Col(className="adaptive-hide", width=1),
             ],
             style={"paddingTop": "6dvh"},
+            class_name='adaptive-block'
         )
 
 

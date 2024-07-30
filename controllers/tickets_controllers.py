@@ -1,5 +1,7 @@
 from controllers import db_connection
 import pandas as pd
+from uuid import uuid4
+from dash import no_update, html
 
 
 def get_query_strings(
@@ -11,10 +13,13 @@ def get_query_strings(
 
     orderby_without_priority = "ORDER BY created_at DESC"
     if mode == "multi":
+        table_name = "tickets"
         if query_filter == "unanswered":
-            table_name = f"(select * from tickets where status_id = 0)"
-        elif query_filter == "this_reviewer":
-            table_name = "tickets"
+            where = "where step_id = 0"
+        elif query_filter == "in_work":
+            where = "where step_id = 1"
+        elif query_filter == "ended":
+            where = "where step_id = 2"
         elif query_filter in [
             "account_last5sended",
             "account_last5awaiting",
@@ -201,8 +206,87 @@ def get_ticket_history(ticket_uuid):
         + ". "
     )
 
-    created = df[df['step_id'] == 0].to_dict('records')[0] if len(df[df['step_id'] == 0]) > 0 else pd.DataFrame()
-    in_work = df[df['step_id'] == 1].to_dict('records') if len(df[df['step_id'] == 1]) > 0 else pd.DataFrame()
-    ended = df[df['step_id'] == 2].to_dict('records')[0] if len(df[df['step_id'] == 2]) > 0 else pd.DataFrame()
+    created = (
+        df[df["step_id"] == 0].to_dict("records")[0]
+        if len(df[df["step_id"] == 0]) > 0
+        else pd.DataFrame()
+    )
+    in_work = (
+        df[df["step_id"] == 1].to_dict("records")
+        if len(df[df["step_id"] == 1]) > 0
+        else pd.DataFrame()
+    )
+    ended = (
+        df[df["step_id"] == 2].to_dict("records")[0]
+        if len(df[df["step_id"] == 2]) > 0
+        else pd.DataFrame()
+    )
 
     return created, in_work, ended
+
+
+def send_ticket(userdata, priority, problem, text, opened):
+    try:
+        ticket_uuid = str(uuid4())
+        conn = db_connection.get_conn()
+        with conn.cursor() as cursor:
+            cursor.execute(
+                'INSERT INTO "tickets" '
+                '("uuid", "reporter_id", "priority_id", "problem_id", "text") '
+                "values (%(uuid)s, %(reporter_id)s, %(priority_id)s, %(problem_id)s, %(text)s);",
+                {
+                    "uuid": ticket_uuid,
+                    "reporter_id": userdata["user_id"],
+                    "priority_id": int(priority),
+                    "problem_id": int(problem),
+                    "text": text,
+                },
+            )
+        conn.commit()
+        conn.close()
+        return "", ticket_uuid, not opened
+    except Exception:
+        return (
+            "Ошибка отправки. Повторите позднее.",
+            no_update,
+            no_update,
+        )
+
+
+def send_ticket_answer(ans_text, status, report_link, t_uuid, userdata):
+    try:
+        conn = db_connection.get_conn()
+        with conn.cursor() as cursor:
+            cursor.execute(
+                'INSERT INTO "tickets_review" '
+                '("uuid", "reviewer_id", "assigned_status", "text") '
+                "values (%(uuid)s, %(reviewer_id)s, %(assigned_status)s, %(text)s);",
+                {
+                    "uuid": t_uuid,
+                    "reviewer_id": userdata["user_id"],
+                    "assigned_status": int(status),
+                    "text": ans_text,
+                },
+            )
+        conn.commit()
+        conn.close()
+        return (
+            [
+                "Ответ успешно отправлен. ",
+                html.A(
+                    "Откройте данный тикет в новой вкладке для продолжения работы.",
+                    href=report_link,
+                    target="_blank",
+                ),
+            ],
+            "green",
+            0,
+        )
+    except Exception:
+        return (
+            [
+                "Ошибка отправки попробуйте позднее."
+            ],
+            "red",
+            0,
+        )

@@ -14,28 +14,32 @@ def get_modal_content_by_uuid(ticket_uuid, userdata, source="unset"):
         query_filter="by_uuid",
     )
 
-    ticket_table = dbc.Table(
-        [
-            html.Tbody(
-                [
-                    html.Tr(
-                        [
-                            html.Td(key, className="p-2 fw-bold"),
-                            html.Td(ticket_details[key], className="p-2"),
-                        ],
-                    )
-                    for key in list(ticket_details.keys())
-                ]
-            )
-        ],
-        class_name="shadow-none w-content",
-        bordered=True,
-        hover=True,
+    ticket_table = html.Div(
+        dbc.Table(
+            [
+                html.Tbody(
+                    [
+                        html.Tr(
+                            [
+                                html.Td(key, className="p-2 fw-bold"),
+                                html.Td(ticket_details[key], className="p-2"),
+                            ],
+                        )
+                        for key in list(ticket_details.keys())
+                    ]
+                )
+            ],
+            class_name="shadow-none w-content",
+            bordered=True,
+            hover=True,
+        ),
+        className="auto-overflow",
     )
 
     created, in_work, ended = tickets_controllers.get_ticket_history(
         ticket_uuid=ticket_uuid
     )
+
     active_num = 0
     created_item = [
         dmc.TimelineItem(
@@ -82,9 +86,8 @@ def get_modal_content_by_uuid(ticket_uuid, userdata, source="unset"):
         in_work_items = [
             dmc.TimelineItem(title="На рассмотрении", lineVariant="dashed")
         ]
-
     if len(ended) > 0:
-        active_num =+ 1
+        active_num += 1
         ended_item = [
             dmc.TimelineItem(
                 title=ended["status_name"],
@@ -135,16 +138,20 @@ def get_modal_content_by_uuid(ticket_uuid, userdata, source="unset"):
                 ),
                 dmc.Textarea(
                     label="Введите ответ",
+                    id="ticket-answer",
                     placeholder="До 1024 символов",
                     w=500,
+                    maw='100%',
                     autosize=True,
                     minRows=3,
                     maxRows=7,
+                    
                 ),
-                dmc.Button("Отправить"),
+                dmc.Text(id="ticket-answer-status"),
+                dmc.Button("Отправить", id="ticket-answer-send", n_clicks=0),
             ]
         )
-        if source != "account"
+        if source != "account" and userdata["can_answer_reports"]
         else None
     )
 
@@ -214,109 +221,3 @@ def get_modal_content_by_uuid(ticket_uuid, userdata, source="unset"):
         ],
         className="w-100",
     )
-
-
-# @callback(
-#     Output("review-ticket_history", "children"),
-#     Output("review-ticket_answer", "children"),
-#     Input("review-ticket_accordion", "value"),
-#     prevent_initial_call=True,
-# )
-# def output_fields(accordion_value):
-#     history_data = no_update
-#     answer_data = no_update
-
-#     if "ticket_history" in accordion_value:
-#         history_data = dmc.Timeline(
-#             active=2,
-#             bulletSize=15,
-#             lineWidth=2,
-#             children=[
-#                 dmc.TimelineItem(
-#                     title="Получен",
-#                     children=[
-#                         dmc.Text(
-#                             ["01/01/2024 08:00"],
-#                             c="dimmed",
-#                             size="sm",
-#                         ),
-#                     ],
-#                 ),
-#                 dmc.TimelineItem(
-#                     title="На рассмотрении",
-#                     children=dmc.Stack(
-#                         [
-#                             dmc.Text(
-#                                 "02/01/2024 08:00",
-#                                 c="dimmed",
-#                                 size="sm",
-#                             ),
-#                             dmc.Space(h="xs"),
-#                             dmc.Text(
-#                                 "Ответ: {ответ}",
-#                                 c="dimmed",
-#                                 size="sm",
-#                             ),
-#                             dmc.Text(
-#                                 "Исполнитель: {должность} {ФИО}",
-#                                 c="dimmed",
-#                                 size="sm",
-#                             ),
-#                         ],
-#                         gap=0,
-#                     ),
-#                 ),
-#                 dmc.TimelineItem(
-#                     title="В работе",
-#                     children=dmc.Stack(
-#                         [
-#                             dmc.Text(
-#                                 "03/01/2024 08:00",
-#                                 c="dimmed",
-#                                 size="sm",
-#                             ),
-#                             dmc.Space(h="xs"),
-#                             dmc.Text(
-#                                 "Ответ: {ответ}",
-#                                 c="dimmed",
-#                                 size="sm",
-#                             ),
-#                             dmc.Text(
-#                                 "Исполнитель: {должность} {ФИО}",
-#                                 c="dimmed",
-#                                 size="sm",
-#                             ),
-#                         ],
-#                         gap=0,
-#                     ),
-#                 ),
-#                 dmc.TimelineItem(
-#                     title="Завершен",
-#                     lineVariant="dashed",
-#                 ),
-#             ],
-#         )
-#     if "ticket_answer" in accordion_value:
-#         answer_data = dmc.Stack(
-#             [
-#                 dmc.Select(
-#                     label="Присвойте статус отчету",
-#                     data=users_controllers.get_status_list(),
-#                     searchable=True,
-#                     w=300,
-#                     rightSection=DashIconify(icon="radix-icons:chevron-down"),
-#                     placeholder="Статус",
-#                     id="ticket-status-select",
-#                 ),
-#                 dmc.Textarea(
-#                     label="Введите ответ",
-#                     placeholder="До 1024 символов",
-#                     w=500,
-#                     autosize=True,
-#                     minRows=3,
-#                     maxRows=7,
-#                 ),
-#                 dmc.Button("Отправить"),
-#             ]
-#         )
-#     return history_data, answer_data
